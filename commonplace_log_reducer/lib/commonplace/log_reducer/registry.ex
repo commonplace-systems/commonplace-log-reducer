@@ -27,15 +27,10 @@ defmodule Commonplace.LogReducer.Registry do
 
   alias Commonplace.LogReducer.Error
 
-  @required_callbacks [
-    reducer_id: 0,
-    reducer_version: 0,
-    init: 2,
-    apply: 3,
-    view: 1,
-    checkpoint: 1,
-    restore: 2
-  ]
+  # Derived from the behaviour itself rather than restated here, so the
+  # registry cannot drift from section 12's callback list: adding a callback to
+  # `Commonplace.LogReducer.Plugin` immediately tightens registration.
+  @required_callbacks Commonplace.LogReducer.Plugin.behaviour_info(:callbacks)
 
   @enforce_keys [:entries]
   defstruct entries: %{}
