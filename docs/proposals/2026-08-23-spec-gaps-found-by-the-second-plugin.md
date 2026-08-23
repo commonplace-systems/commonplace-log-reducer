@@ -1,9 +1,19 @@
 # Spec gaps found by the second plugin author
 
+> **Gap 1: RESOLVED 2026-08-23.** jes ruled "gap 1 should get fixed, reducer gets to
+> decide how". Fixed **in the specification itself** as §12.2, not in a companion
+> document — a normative rule living outside the normative document is what created the
+> gap. The spec's hash changed deliberately; see its new §0 amendment record, which
+> carries the old hash, the authorisation, and the reason.
+>
+> **Gap 2: RULED, not amended.** jes confirmed "'many authors per projection are
+> expected' is true". That is a design fact; the spec text is unchanged and the
+> amendment below remains open for its owner.
+
 **Status:** Proposed amendments to the 2026-08-22 spec. **Not applied** — the
 specification at `docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md`
 is filed byte-identical to jes's original (sha256
-`248cf8f44eff61ea37ff0e05e660ddc2b95d86d363f24d249bcad5dfbe24a038`) and is not edited
+`72828c72686f2ba9093bd9f2039e6630ef237a004c5f021e610a6b764f47594f`) and is not edited
 here. These are for its owner to accept, reject, or reword.
 
 **Provenance:** both were found by `commonplace-merkle-crdt` while building the second

@@ -1,9 +1,36 @@
 # Commonplace Log Reducer and Attribute Map
 
-**Version:** 0.1-draft  
+**Version:** 0.1-draft, amendment 1  
 **Status:** Proposed implementation specification  
 **Date:** 2026-08-22  
 **Libraries:** commonplace-log-reducer, commonplace-attribute-map
+
+## 0. Amendment record
+
+This document was filed byte-identical to its author's original at commit `612cb7f`,
+sha256 `248cf8f44eff61ea37ff0e05e660ddc2b95d86d363f24d249bcad5dfbe24a038`. That form
+remains retrievable from git history and any earlier pinned hash refers to it.
+
+**Amendment 1 — 2026-08-23 — adds §12.2, plugin error classification.**
+
+*Authorisation:* jes, 2026-08-23, relayed via boss-clod, verbatim: "gap 1 should get
+fixed, reducer gets to decide how."
+
+*Why:* the mapping from a plugin's `{:error, reason}` to a §21 error code was not
+derivable from this document. §12 defined the callbacks, §21 defined the codes, and
+nothing joined them; §13 required a reducer to "return an explicit missing-resource
+error" without ever giving that error a shape, so no two implementations would have
+recognised one. The gap was found by the author of the second reducer plugin, who built
+against the reference implementation's `PLUGIN_AUTHORS.md` and observed that §42.10
+requires a second plugin to work "without changing the core reducer API" while being
+silent on whether that API is *learnable from the normative source*.
+
+*Why here rather than in a companion document:* a normative rule living outside the
+normative document is what created the gap. A plugin author who reads this specification
+and not some other file must be able to get the mapping right.
+
+*Unchanged:* everything else. This amendment adds §12.2 and this section and alters no
+existing requirement.
 
 ## 1. Decision
 
@@ -404,6 +431,34 @@ A conforming plugin:
 - MUST validate checkpoints before restoring them.
 
 Plugin state may be any immutable Elixir term. Only views and checkpoints cross the plugin boundary as durable or user-facing representations.
+
+### 12.2 Plugin error classification
+
+A plugin reports failure as `{:error, reason}`. The engine MUST classify that failure by
+the callback which produced it:
+
+| Callback | Error code |
+| --- | --- |
+| init | invalid_epoch_base |
+| apply | invalid_operation |
+| restore | invalid_checkpoint |
+| checkpoint | invalid_checkpoint |
+
+A reason of the form `{:missing_resource, key}` MUST be classified as missing_resource
+regardless of which callback produced it. This overrides the table above.
+
+`{:missing_resource, key}` is the only reason shape the engine interprets. The engine:
+
+- MUST carry every other reason into the error's structured details unexamined;
+- MUST NOT branch on a reason it does not recognise;
+- MUST NOT require a plugin reason to be a particular type; and
+- MUST NOT derive behaviour from a human-readable message.
+
+A reason is plugin-defined data, not a protocol identifier. Plugins SHOULD return stable
+atoms or slugs so that tests may pin them.
+
+An error returned by view is not classified under section 21. It surfaces to the caller,
+because producing a view neither reduces an entry nor advances the head.
 
 ## 13. Reducer context
 

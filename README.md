@@ -24,7 +24,7 @@ epoch/operation routing — at 133 passing tests.
 
 The direction document is filed byte-identical at
 [`docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md`](docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md)
-(sha256 `248cf8f44eff61ea37ff0e05e660ddc2b95d86d363f24d249bcad5dfbe24a038`).
+(sha256 `72828c72686f2ba9093bd9f2039e6630ef237a004c5f021e610a6b764f47594f`).
 It is the source of truth for scope; this README summarizes and does not extend it.
 
 ## What is planned
