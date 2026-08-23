@@ -141,6 +141,29 @@ sixteenth code fails that assertion **by design**, which is the correct kind of 
 loud, at the declaration, with an obvious fix. Widen the set deliberately; never relax
 the closure.
 
+**D7 — A structurally malformed entry is a contract breach, not a §21 error.**
+Raised in Task 6. §6 assigns canonical entry validation to the *caller*, then lists five
+things the reducer MUST re-verify. A missing or ill-typed coordinate key (`writer_seq`
+absent, `log_id` a number) is a breach of the input contract *before* any coordinate can
+be compared, and §21 defines no code for it.
+
+So presence/shape and value are separate concerns:
+
+| Input | Result |
+| --- | --- |
+| `log_id` absent or non-binary | `{:error, {:invalid_entry, …}}` — contract breach |
+| `log_id` well-formed, names another log | `%Error{code: :log_mismatch}` — §21 |
+
+The alternative — stretching `writer_gap` ("the next sequence or predecessor is
+missing") to also cover "the JSON key was absent" — would blur exactly the
+missing-vs-conflicting line that the `writer_gap`/`writer_fork` sabotage test exists to
+defend. Two codes that no test can distinguish are one code with two names.
+
+§15's `error()` type is unspecified, so `reduce/3` returning a non-`%Error{}` term is
+permitted. **Consequence for Task 7:** `reduce/3` must surface both shapes, and callers
+pattern-matching only on `%Error{}` will miss the contract-breach case — document that
+on `reduce/3` rather than smoothing it over.
+
 ---
 
 ## Gate discipline (applies to every gate this plan lands)
