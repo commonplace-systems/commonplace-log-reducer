@@ -16,7 +16,19 @@ defmodule Commonplace.LogReducer.DependencyTest do
     end
   end
 
-  test "mix.exs declares no plugin dependency, with a positive control" do
+  # SECONDARY TRIPWIRE, not the boundary's enforcement.
+  #
+  # A real path dep on the plugin creates a cycle that aborts mix before ExUnit
+  # loads ("another project with the same name was already defined"), so this
+  # assertion cannot fire in the case it was nominally written for. The BUILD
+  # GRAPH is what enforces the plugin boundary (spec §37.1). What this test
+  # catches is the plugin named in mix.exs in some non-cycle form: a comment, a
+  # string, an optional:/only: entry, or a dep named without a path.
+  #
+  # Do not read a green here as "the boundary is test-enforced" and collapse the
+  # two projects into one -- that would delete the enforcement and keep the test
+  # that appears to provide it.
+  test "mix.exs names no plugin in any non-cycle form, with a positive control" do
     source = File.read!(@mixfile)
     assert source =~ ":commonplace_log_reducer"
     refute source =~ ":commonplace_attribute_map"
