@@ -1,19 +1,26 @@
 # commonplace-log-reducer
 
-Sibling repo to [commonplace-log](https://github.com/commonplace-systems/commonplace-log).
+Generic projection engine over [commonplace-log](https://github.com/commonplace-systems/commonplace-log),
+plus the `commonplace-attribute-map` reducer plugin **in this same repo** (jes, 2026-08-23).
+
+Dependency direction: `commonplace-log` → `commonplace-log-reducer` → reducer plugins.
+This library consumes validated entries from commonplace-log; it does not own log
+persistence, BEAM process lifecycle, Document messaging, Cell authority, capabilities,
+Realm placement, or replica synchronization.
 
 ## Status
 
-**New repo, 2026-08-23.** Created at jes's request. Scope has not been specified yet —
-nothing here is implemented, and nothing about the intended design should be inferred
-from the name alone. The first substantive commit should be a direction document from
-jes, filed under `docs/proposals/`, in the same way `commonplace-log` works.
+**New repo, 2026-08-23. Nothing implemented yet.**
 
-## What exists
-
-- This README.
-- `docs/` — empty, for the direction document and any plan that follows it.
+The direction document is filed byte-identical at
+[`docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md`](docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md)
+(sha256 `248cf8f44eff61ea37ff0e05e660ddc2b95d86d363f24d249bcad5dfbe24a038`).
+It is the source of truth for scope; this README summarizes and does not extend it.
 
 ## What is planned
 
-Unknown until jes says. Do not guess.
+Per the spec: projection engine, epoch protocol, reducer behavior + registry,
+deterministic replay, checkpoint format — and the attribute-map plugin (put / delete /
+patch over a JSON attribute map, last-write-in-log-order wins) shipped alongside it.
+
+A task plan should be written against the spec's own required-tests list before code.
