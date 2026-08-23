@@ -1,0 +1,67 @@
+{
+  "ok": {
+    "head": {
+      "writer_seq": 1,
+      "entry_id": "0198e000-0000-7000-8000-000000000001"
+    },
+    "projections": {
+      "content": {
+        "epoch_id": "0198ea00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198e000-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "fixture.counter",
+          "version": 1
+        }
+      }
+    },
+    "views": {
+      "content": {
+        "epoch_id": "0198ea00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198e000-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "fixture.counter",
+          "version": 1
+        },
+        "head": {
+          "writer_seq": 1,
+          "entry_id": "0198e000-0000-7000-8000-000000000001"
+        },
+        "value": 1
+      }
+    },
+    "checkpoint": {
+      "version": 1,
+      "log_id": "0198d83c-eaf8-7c5d-b1e3-4387f1d8d9b8",
+      "writer_id": "0198d83d-54de-7c06-b574-ea1fb40d3a86",
+      "head": {
+        "writer_seq": 1,
+        "entry_id": "0198e000-0000-7000-8000-000000000001"
+      },
+      "projections": {
+        "content": {
+          "epoch_id": "0198ea00-0000-7000-8000-000000000001",
+          "seen_epoch_ids": [
+            "0198ea00-0000-7000-8000-000000000001"
+          ],
+          "epoch_head": {
+            "writer_seq": 1,
+            "entry_id": "0198e000-0000-7000-8000-000000000001"
+          },
+          "reducer": {
+            "id": "fixture.counter",
+            "version": 1
+          },
+          "state": {
+            "count": 1
+          }
+        }
+      }
+    }
+  }
+}

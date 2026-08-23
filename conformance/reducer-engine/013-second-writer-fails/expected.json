@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "multiwriter_document_unsupported",
+    "writer_seq": 2,
+    "entry_id": "0198e000-0000-7000-8000-000000000002",
+    "projection": null,
+    "head": {
+      "writer_seq": 1,
+      "entry_id": "0198e000-0000-7000-8000-000000000001"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "error": {
+    "code": "invalid_operation",
+    "writer_seq": 2,
+    "entry_id": "0198f200-0000-7000-8000-000000000002",
+    "projection": "attributes",
+    "head": {
+      "writer_seq": 1,
+      "entry_id": "0198f200-0000-7000-8000-000000000001"
+    },
+    "reason": "key_empty",
+    "views": {
+      "attributes": {
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "commonplace.attribute-map",
+          "version": 1
+        },
+        "head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "value": {}
+      }
+    }
+  }
+}
