@@ -244,4 +244,46 @@ defmodule Commonplace.LogReducer.EnvelopeTest do
       assert_code(operation(%{"projection" => "Attributes"}), :invalid_projection_name)
     end
   end
+
+  describe "regression guards for silently-correct behaviour" do
+    # These three pin behaviour that is correct today and unguarded. Each names
+    # the specific regression it catches, because each failure mode is a
+    # permanent log that can never be replayed again.
+
+    test "§7 a trailing newline is NOT a valid projection name" do
+      # PCRE's $ matches before a trailing newline, so a regression from \A..\z
+      # to ^..$ would make "attributes\n" a SECOND, distinct projection whose
+      # operations silently never match the intended one.
+      refute Envelope.valid_projection_name?("attributes\n")
+      refute Envelope.valid_projection_name?("a\n")
+      assert Envelope.valid_projection_name?("attributes")
+    end
+
+    test "§8 a non-binary type is unrelated, not a crash" do
+      # §8 requires unrelated application history to be ignored. If the
+      # non-binary clause were dropped, String.starts_with?/2 would raise on
+      # this body and reduction would crash on history it must simply skip.
+      assert {:unrelated, %{"type" => 42}} = Envelope.classify(%{"type" => 42})
+      assert {:unrelated, _} = Envelope.classify(%{"type" => nil})
+      assert {:unrelated, _} = Envelope.classify(%{"type" => %{"nested" => true}})
+      assert {:unrelated, _} = Envelope.classify(%{"type" => ["a"]})
+    end
+
+    test "§9 reducer.version must be a positive SAFE integer" do
+      # Above 2^53-1 a double-precision runtime reads a different version than
+      # the BEAM does, so two conforming implementations would disagree on the
+      # active reducer for the same durable entry (§20).
+      unsafe = 9_007_199_254_740_992
+
+      assert_code(
+        epoch(%{"reducer" => %{"id" => "r", "version" => unsafe}}),
+        :invalid_reducer_envelope
+      )
+
+      # positive control: the largest SAFE integer is still accepted, so the
+      # bound rejects only what it is meant to.
+      safe = epoch(%{"reducer" => %{"id" => "r", "version" => 9_007_199_254_740_991}})
+      assert {:epoch, _} = Envelope.classify(safe)
+    end
+  end
 end

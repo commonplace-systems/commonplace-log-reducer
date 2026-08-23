@@ -214,7 +214,17 @@ defmodule Commonplace.LogReducer.Envelope do
   defp reducer_id(_body, id) when is_binary(id) and id != "", do: :ok
   defp reducer_id(body, id), do: envelope_error(body, %{reason: :invalid_reducer_id, value: id})
 
-  defp reducer_version(_body, version) when is_integer(version) and version > 0, do: :ok
+  # §9: "A positive SAFE integer." The upper bound is not decoration -- a runtime
+  # whose JSON numbers are IEEE doubles cannot distinguish 2^53 from 2^53+1, so an
+  # entry above the safe range would name a DIFFERENT active reducer on the BEAM
+  # than in that runtime. §20 requires all conforming implementations to agree on
+  # the active reducer for a fixed log prefix, so this bound is what keeps two
+  # correct implementations from diverging on permanent history.
+  @max_safe_integer 9_007_199_254_740_991
+
+  defp reducer_version(_body, version)
+       when is_integer(version) and version > 0 and version <= @max_safe_integer,
+       do: :ok
 
   defp reducer_version(body, version),
     do: envelope_error(body, %{reason: :invalid_reducer_version, value: version})
