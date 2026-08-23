@@ -8,6 +8,16 @@ This library consumes validated entries from commonplace-log; it does not own lo
 persistence, BEAM process lifecycle, Document messaging, Cell authority, capabilities,
 Realm placement, or replica synchronization.
 
+## Where the code is
+
+⚠️ **`main` is documentation only. The implementation lives on branch `sol/impl`**
+(worktree `.worktrees/impl`) and is merged back when the plan completes. Checking `main`
+alone gives the false impression that nothing is built.
+
+As of 2026-08-23 that branch has the engine through the §16 processing algorithm —
+error codes, envelope validation, registry, plugin behaviour, chain validation, and
+epoch/operation routing — at 133 passing tests.
+
 ## Status
 
 **New repo, 2026-08-23. Nothing implemented yet.**
