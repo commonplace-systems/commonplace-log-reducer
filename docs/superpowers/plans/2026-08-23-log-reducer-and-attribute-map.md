@@ -66,9 +66,25 @@ So shared test code lives in a **repo-root `test_support/` directory**, and *eac
 project compiles it into its own test build:
 
 ```elixir
-defp elixirc_paths(:test), do: ["lib", "test/support", "../test_support"]
+defp elixirc_paths(:test),
+  do: ["lib", "test/support", Path.expand("../test_support", __DIR__)]
+
 defp elixirc_paths(_), do: ["lib"]
 ```
+
+⚠️ **The path MUST be absolute.** A relative `"../test_support"` is a hard compile
+abort, not a warning — verified against Elixir 1.18.4:
+
+```
+** (Mix) Could not find source for ".../test_support/jcs.ex". Make sure the
+:elixirc_paths configuration is a list of relative paths to the current project
+or absolute paths to external directories
+```
+
+`__DIR__` in `mix.exs` is that file's directory and is stable under
+`Mix.Project.in_project`, so this is safe for the path dependency too. A nonexistent
+absolute path is silently ignored, so this is harmless in Task 1 before `test_support/`
+exists in Task 9.
 
 One copy, no duplication, no dependency-env trickery, and it ships in neither package
 because it is absent from the non-test path. Repo-root `test_support/` holds only what
@@ -129,7 +145,7 @@ case 9. There is a dedicated test for this.
 | Path | Responsibility |
 | --- | --- |
 | `conformance/README.md` | Corpus rules + the SELECTOR statement (what green does and does not mean). |
-| `conformance/canonical-json/` | 18 vectors copied verbatim from `commonplace-log` (D3). |
+| `conformance/canonical-json/` | 19 case dirs copied verbatim from `commonplace-log` — 18 pass-gate + 1 `9xx` (D3). |
 | `conformance/reducer-engine/` | The 16 §38 engine cases. |
 | `conformance/attribute-map/` | The 17 §38 plugin cases. |
 | `conformance/check.sh` | Runs both suites; **must** exit non-zero when a `9xx-` case unexpectedly passes. |
@@ -201,7 +217,9 @@ defmodule CommonplaceLogReducer.MixProject do
 
   def application, do: [extra_applications: [:logger]]
 
-  defp elixirc_paths(:test), do: ["lib", "test/support", "../test_support"]
+  defp elixirc_paths(:test),
+    do: ["lib", "test/support", Path.expand("../test_support", __DIR__)]
+
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
@@ -218,8 +236,8 @@ boundary (D1).
 
 - [ ] **Step 3: Write `commonplace_attribute_map/mix.exs`**
 
-Same shape — **including the same `elixirc_paths(:test)` with `"../test_support"`**
-(D3) — plus:
+Same shape — **including the same `elixirc_paths(:test)` with
+`Path.expand("../test_support", __DIR__)`**, absolute, not relative (D3) — plus:
 
 ```elixir
   defp deps do
@@ -269,11 +287,18 @@ defmodule Commonplace.LogReducer.DependencyTest do
 
   test "the engine performs no I/O and loads no code dynamically" do
     paths = Path.wildcard(Path.join(@lib, "**/*.ex"))
+    assert paths != [], "positive control: found no engine sources to scan"
+
     source = Enum.map_join(paths, "\n", &File.read!/1)
+    assert source =~ "LogReducer", "positive control: scanned sources are not the engine"
 
     for forbidden <- [
           "String.to_atom",
           "String.to_existing_atom",
+          "Module.concat",
+          "List.to_atom",
+          ":erlang.binary_to_atom",
+          ":erlang.binary_to_existing_atom",
           ":httpc",
           "File.read",
           "Code.eval",
@@ -289,6 +314,11 @@ defmodule Commonplace.LogReducer.DependencyTest do
   end
 end
 ```
+
+`Module.concat/1` earns its place: it creates atoms from binaries and is *the*
+idiomatic way somebody would turn `body["reducer"]["id"]` into a module. A registry
+built on `Module.concat(["Elixir", id])` does exactly what §11 forbids while passing a
+gate that only bans `String.to_atom`.
 
 **`Code.ensure_loaded?/1` is deliberately NOT on that list, and must not be added.**
 §22 forbids *loading arbitrary code* — evaluating or compiling code named by untrusted
@@ -330,9 +360,14 @@ Expected: PASS (3 tests).
 
 - [ ] **Step 8: Observe the gate RED on known-bad input**
 
-Temporarily add `# AttributeMap` as a comment inside
-`lib/commonplace/log_reducer.ex`, re-run, and **observe the failure**. Then revert and
-re-run to confirm green again.
+Force **each** of the three tests red in turn — a list of forbidden strings where only
+one entry has ever been observed failing is one proven entry and N assumptions:
+
+1. add `# AttributeMap` as a comment inside `lib/commonplace/log_reducer.ex` → test 1 red;
+2. add `:commonplace_attribute_map` to `mix.exs` deps → test 2 red;
+3. add `DateTime.utc_now()` inside the stub module → test 3 red.
+
+Revert after each and re-run to confirm green returns.
 
 Paste both outcomes into the commit message. A gate that has never been watched failing
 is not known to work — green and broken share an observable until you force a red.
@@ -405,7 +440,32 @@ protocol identifiers (§21) — do not derive behaviour from message text.
 
 - [ ] **Step 4: Run to verify it passes.** Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit** — `feat(engine): §21 error struct with a closed 15-code set`
+- [ ] **Step 5: Add the reachability recording helper**
+
+`test_support/emitted.ex` (repo root, shared — D3):
+
+```elixir
+defmodule Emitted do
+  @moduledoc "Records which §21 codes an assertion actually observed. See Task 12."
+  def record(%{code: code} = err) do
+    if :ets.whereis(:emitted_codes) != :undefined,
+      do: :ets.insert(:emitted_codes, {code})
+    err
+  end
+  def record(other), do: other
+end
+```
+
+**Every test in tasks 3, 6, 7 and 9 that asserts an error code must pipe through it:**
+
+```elixir
+assert %Error{code: :stale_epoch} = Emitted.record(err)
+```
+
+Introducing it now means Task 12 switches the gate on rather than retrofitting four
+files. Wiring it later is the version of this that quietly never happens.
+
+- [ ] **Step 6: Commit** — `feat(engine): §21 error struct with a closed 15-code set`
 
 ---
 
@@ -636,7 +696,12 @@ conformance vectors will disagree with the code:**
 | `init/2` | `invalid_epoch_base` |
 | `apply/3` | `invalid_operation` |
 | `restore/2` | `invalid_checkpoint` |
+| `checkpoint/1` | `invalid_checkpoint` |
 | **any**, when `reason` is `{:missing_resource, key}` | `missing_resource` |
+
+**`view/1` is deliberately absent.** A plugin view error is not an §21 code — it
+surfaces to the caller as `{:error, term}` from `view/2` per §15, because producing a
+view neither reduces an entry nor moves the head. Do not invent a code for it.
 
 The last row overrides the other three. `{:missing_resource, key}` is the one
 structurally-recognized reason shape, because §13 requires a reducer to return an
@@ -829,7 +894,9 @@ Step 9: Run to verify they pass.**
 - Test: `commonplace_attribute_map/test/conformance_test.exs`
 
 - [ ] **Step 1: Write `conformance/README.md`** — the format above, the byte rules,
-the 9xx policy, and a **SELECTOR statement** saying exactly what a green run does and
+the 9xx policy (stated precisely: a case is deliberately-wrong iff its **three-digit
+numeric prefix begins with `9`** — `900`–`999`, so a future `019-` is pass-gate and
+there is no `090-` ambiguity), and a **SELECTOR statement** saying exactly what a green run does and
 does not mean (copy the sibling's framing).
 
 - [ ] **Step 2: Write the 16 engine vectors**, one per §38's numbered list, named for
@@ -918,22 +985,53 @@ the exact test or vector that demonstrates it, with the command to run it. Crite
 plugin yet — record it as **not demonstrated**, and say so plainly rather than
 claiming coverage.
 
-- [ ] **Step 3: Add a code-reachability gate**
+- [ ] **Step 3: Turn on the code-reachability gate**
 
-`commonplace_log_reducer/test/code_reachability_test.exs` — assert that every one of
-the 15 §21 codes is actually *produced* by some test in the suite, not merely declared
-in the struct. Implement by having the conformance and engine suites record each
-emitted code into an ETS table or an agent-free module attribute accumulator, then
-assert set equality against `Error.codes()` at the end of the run.
+The recording helper is introduced back in **Task 2** (see below) and used by the
+Task 3/6/7/9 tests as they are written; this step only switches on the final assertion.
 
 A code that is declared but that no code path can emit is a documented behaviour with
 no implementation — the exact gap that reads as covered. If a code genuinely cannot be
-reached yet, this test must list it as an explicit, named exemption rather than being
-weakened to a subset check.
+reached, the gate must name it as an explicit exemption, never be weakened to a subset
+check.
 
-- [ ] **Step 4: Update the repo README** to describe what now exists.
+**Mechanism — this must be `ExUnit.after_suite/1`, not an ordinary test.** ExUnit
+randomizes order, so a "run last" test would fail nondeterministically, and it would
+fail on *every* partial run (`mix test test/error_test.exs`). In
+`commonplace_log_reducer/test/test_helper.exs`:
 
-- [ ] **Step 5: Run everything and paste real output into the commit**
+```elixir
+:ets.new(:emitted_codes, [:named_table, :public, :set])
+
+# Only a full-suite run can prove reachability; a filtered run must not fail.
+full_run? = System.argv() == [] and System.get_env("EXUNIT_FILTERED") != "1"
+
+ExUnit.after_suite(fn %{failures: failures} ->
+  emitted = :ets.tab2list(:emitted_codes) |> Enum.map(&elem(&1, 0)) |> MapSet.new()
+  declared = MapSet.new(Commonplace.LogReducer.Error.codes())
+  missing = MapSet.difference(declared, emitted)
+
+  cond do
+    not full_run? -> :ok
+    failures > 0 -> :ok   # do not pile on: a red suite explains itself
+    MapSet.size(missing) > 0 ->
+      IO.puts(:stderr, "UNREACHABLE §21 CODES: #{inspect(MapSet.to_list(missing))}")
+      System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+    true -> :ok
+  end
+end)
+
+ExUnit.start()
+```
+
+- [ ] **Step 4: Prove the reachability gate can go red**
+
+Comment out the one test that emits `missing_resource`, run the full suite, and observe
+the non-zero exit naming that code. Restore and confirm green. Record both.
+
+- [ ] **Step 5: Update the repo README** to describe what now exists.
+
+- [ ] **Step 6: Run everything and paste real output into the commit**
 
 ```bash
 (cd commonplace_log_reducer && mix test) && \
@@ -941,7 +1039,7 @@ weakened to a subset check.
 ./conformance/check.sh
 ```
 
-- [ ] **Step 6: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
+- [ ] **Step 7: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
 
 ---
 
@@ -958,6 +1056,20 @@ Recorded so they are visible rather than forgotten:
   treat a short read against a live appender as a valid shorter prefix. A genuine
   sequence hole or a `prev_entry_id` not naming its predecessor is corruption and must
   be refused loudly — which our §6 chain validation (task 6) already does.
+
+  *Status 2026-08-23: the `Commonplace.Log.DocumentProfile` façade has landed
+  (`7a92cc9`) with surface `create_log/2`, `open_log/2`, `append/3` and no `writer_id`
+  in any signature. **Do not write the adapter against it yet** — that worker reports
+  a lease and fencing epoch attach to the handle next, so `open_log`'s options and the
+  handle contents will move; `append/3` and the read shapes should not. Wait for its
+  ping that the seam is stable.*
+
+  ⭐ *And do not retire our §17 refusal once the façade exists.* `LogStore.SQLite`
+  remains the **base-protocol** surface and can still legitimately serve a multi-lane
+  log — that library's own test proves it on purpose, merging a third writer through
+  the base protocol after the façade refuses two. Multi-lane there is a *restriction we
+  opt into*, not corruption. A façade cannot protect us from reading at the wrong
+  layer; our own refusal is what covers that, and it is the only thing that does.
 - **`commonplace-merkle-crdt`** (§41.11, §42.10) — the second plugin that would actually
   prove the plugin boundary. Out of scope here.
 - **Document-process integration** (§41.10) — belongs to a later `commonplace-document`.
