@@ -13,7 +13,22 @@ defmodule Commonplace.LogReducer.DependencyTest do
   # A grep returning 0 over an ignored tree reports "not in the tracked corpus",
   # which is indistinguishable from "not present". If this gate is ever
   # reimplemented in shell, use `command grep` -- an instrument's SCOPE is an
-  # unstated parameter of every absence claim made with it.
+  # unstated parameter of every absence claim made with it. `git grep` shares
+  # the wrapper's scope (measured: 0, same as the wrapper); `command grep` is
+  # the only one of the three that sees everything.
+  #
+  # Two traps in TESTING for this, both of which produce a false all-clear:
+  #
+  #   1. Naming the ignored directory as the search root defeats the pruning
+  #      entirely -- only a traversal that DESCENDS into it from a parent
+  #      triggers it. Pointing grep straight at deps/ and seeing the arms agree
+  #      tests the case that cannot fail. Recurse from the repo root.
+  #
+  #   2. A control drawn from INSIDE the suspected boundary inherits the defect
+  #      and can never reveal it. If both the probe string and the control
+  #      string live in the pruned tree, the control agrees and confirms
+  #      nothing. The control here is deliberately a TRACKED string, outside
+  #      the boundary being tested.
   @lib Path.expand("../lib", __DIR__)
   @mixfile Path.expand("../mix.exs", __DIR__)
 
