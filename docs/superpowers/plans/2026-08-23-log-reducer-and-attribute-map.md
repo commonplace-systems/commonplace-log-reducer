@@ -999,7 +999,8 @@ unsupported in version 1.
 the exact test or vector that demonstrates it, with the command to run it. Criterion 10
 ("merkle-crdt can implement the same behaviour without changing the core API") has no
 plugin yet — record it as **not demonstrated**, and say so plainly rather than
-claiming coverage.
+claiming coverage. Step 5 below also makes it print alongside the green suite output,
+because a caveat that lives only in a doc loses to a passing test run.
 
 - [ ] **Step 3: Turn on the code-reachability gate**
 
@@ -1045,9 +1046,43 @@ ExUnit.start()
 Comment out the one test that emits `missing_resource`, run the full suite, and observe
 the non-zero exit naming that code. Restore and confirm green. Record both.
 
-- [ ] **Step 5: Update the repo README** to describe what now exists.
+- [ ] **Step 5: Make the unproven criterion survive a green run**
 
-- [ ] **Step 6: Run everything and paste real output into the commit**
+§42.10 — "commonplace-merkle-crdt can implement the same plugin behavior without
+changing the core reducer API" — **cannot be demonstrated in this repo**, because there
+is no second plugin. It is also the criterion that actually proves the plugin boundary
+is real: everything else tests the engine against plugins written by the same author
+in the same week, which is exactly the arrangement that hides an accidental coupling.
+
+Recording it in `ACCEPTANCE.md` is necessary but decays — once the suite is green, a
+caveat in a doc reads as pedantry. So it must also print **where the green output is**:
+
+In `commonplace_log_reducer/test/test_helper.exs`, inside the same `after_suite` hook
+as the reachability gate:
+
+```elixir
+IO.puts(:stderr, """
+
+  ─────────────────────────────────────────────────────────────
+  SELECTOR: what this green run does NOT mean
+    §42.10 PLUGIN BOUNDARY NOT VALIDATED — requires a second,
+    independently-authored plugin (commonplace-merkle-crdt).
+    Every plugin exercised here shares an author and a week with
+    the engine, which is the arrangement that hides accidental
+    coupling rather than the one that exposes it.
+  ─────────────────────────────────────────────────────────────
+""")
+```
+
+`conformance/check.sh` must print the same block after a passing run.
+
+**This line is removed only when a second plugin exists and passes** — not when it
+becomes annoying. If someone deletes it, the green suite silently starts claiming
+coverage nobody ever demonstrated.
+
+- [ ] **Step 6: Update the repo README** to describe what now exists.
+
+- [ ] **Step 7: Run everything and paste real output into the commit**
 
 ```bash
 (cd commonplace_log_reducer && mix test) && \
@@ -1055,7 +1090,7 @@ the non-zero exit naming that code. Restore and confirm green. Record both.
 ./conformance/check.sh
 ```
 
-- [ ] **Step 7: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
+- [ ] **Step 8: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
 
 ---
 
