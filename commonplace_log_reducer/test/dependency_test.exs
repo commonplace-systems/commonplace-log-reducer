@@ -4,6 +4,17 @@ defmodule Commonplace.LogReducer.DependencyTest do
   @lib Path.expand("../lib", __DIR__)
   @mixfile Path.expand("../mix.exs", __DIR__)
 
+  # KNOWN FALSE POSITIVE, and the sanctioned response is to REWORD, not to weaken.
+  #
+  # This is a substring scan, so it cannot tell a code reference from prose. A
+  # moduledoc that legitimately quotes the spec (which says "commonplace-
+  # attribute-map version 1 requires no external resources") trips it. That
+  # happened once, in context.ex, and rewording was correct.
+  #
+  # Do NOT respond by narrowing the forbidden list, skipping comments, or
+  # excluding a file. The gate's whole value is that the engine cannot name a
+  # plugin, and every carve-out is a hole shaped like the next real violation.
+  # Paraphrase the prose instead -- the cost is a sentence.
   test "the engine names no reducer plugin, with a positive control" do
     paths = Path.wildcard(Path.join(@lib, "**/*.ex"))
     assert paths != [], "positive control: found no engine sources to scan"
