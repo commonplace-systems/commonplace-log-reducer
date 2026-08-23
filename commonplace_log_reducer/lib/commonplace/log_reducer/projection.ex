@@ -7,6 +7,22 @@ defmodule Commonplace.LogReducer.Projection do
   a silent reinstall), the resolved reducer identity and module, the plugin's
   opaque state, and the log coordinate at which the active epoch was installed.
 
+  ## A projection epoch is not a log branch (section 40)
+
+  An epoch is a *reset point for one projection's interpretation of one log*.
+  It replaces the reducer identity and the base state a projection reduces
+  from, at a stated coordinate in the one input log. It does not fork history,
+  create a second lane of entries, or make any earlier entry unreachable: the
+  log is still a single ordered single-writer sequence, and every entry before
+  and after the epoch entry is still in it, in the same order.
+
+  `parent_epoch_id` therefore chains epochs *within* a projection; it is not a
+  branch point. Two projections in the same engine state can be on entirely
+  different epochs (`epoch_id`) while sharing one head, because they are two
+  readings of one history, not two histories. A durable branch of the log
+  itself would be a different log id, which this engine rejects with
+  `log_mismatch`.
+
   This module is data only. Installing an epoch and applying operations belong
   to the engine; nothing here calls a plugin.
   """

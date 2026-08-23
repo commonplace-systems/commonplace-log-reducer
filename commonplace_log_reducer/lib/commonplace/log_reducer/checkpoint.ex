@@ -8,6 +8,17 @@ defmodule Commonplace.LogReducer.Checkpoint do
   authority, and never permits an entry to be skipped without head
   verification. Everything in it can be rebuilt by replaying the log.
 
+  ## A checkpoint is not canonical history (section 40)
+
+  The log is the canonical history. A checkpoint is a cache of a *reading* of
+  it, and the log wins in every disagreement. Concretely: a checkpoint is
+  always safe to delete, because the same state is reachable by replaying the
+  log from the start; a checkpoint that disagrees with the log is the thing
+  that is wrong, never the log; and no fact enters history by being written
+  into a checkpoint. Nothing is ever *only* in a checkpoint. If it were, this
+  would be a storage format with a log-shaped accelerator, which is the
+  opposite arrangement.
+
   ## Shape
 
       %{

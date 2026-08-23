@@ -17,6 +17,22 @@ defmodule Commonplace.LogReducer do
   Views (`view/2`, `views/1`) are the application-facing read side; checkpoints
   (`checkpoint/1`, `restore/3`) are a derived, disposable accelerator for
   rebuilding state without replaying a whole log.
+
+  ## Raw replica synchronization is not semantic Document synchronization
+  (section 40)
+
+  This engine is a pure function from entries to projections. It does not
+  synchronize anything. When some other layer replicates the underlying log
+  bytes between replicas, that is *raw replica synchronization*: it makes the
+  same entries available in the same order somewhere else. It does not, by
+  itself, mean two Documents agree semantically. Agreement here is a
+  consequence of two things this module can state precisely: the entries a
+  replica has actually reduced (the head in `view/2`), and the epoch under
+  which it reduced them. Two replicas holding the same bytes but stopped at
+  different heads, or running different registries, hold different views and
+  are not synchronized in any sense this library will vouch for. Document
+  messaging, Cell authority, and replica transport are owned elsewhere; see
+  `README.md`.
   """
 
   alias Commonplace.LogReducer.{Checkpoint, Engine, Error, Projection, Registry, State}

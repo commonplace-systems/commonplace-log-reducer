@@ -6,6 +6,18 @@ defmodule Commonplace.LogReducer.Registry do
   where the ID is a binary and the version a positive integer -- to Elixir
   modules implementing the reducer plugin callbacks.
 
+  ## Plugins are trusted installed code, not code named by untrusted input
+  (sections 22, 40)
+
+  A registry entry is code the *host operator* installed and wrote down, in
+  code, at startup. A durable log entry only ever *selects* among entries that
+  are already there, by `{reducer_id, reducer_version}` string and integer. An
+  entry naming something unregistered is `unknown_reducer` and reduction
+  halts; it is never a request to go and find, load, or name code. Anyone who
+  can write to the log therefore chooses among the plugins the host already
+  trusts, and can do nothing else. Adding a plugin is a deployment decision,
+  not a log entry.
+
   Registry contents are trusted code configuration (section 22). Durable log
   content selects only among already-registered identifiers; it never names a
   module. Accordingly this module never converts a reducer string into an atom,

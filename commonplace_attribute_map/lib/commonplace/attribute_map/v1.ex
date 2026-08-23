@@ -19,6 +19,21 @@ defmodule Commonplace.AttributeMap.V1 do
   Because version 1 requires no external resources, this module never returns
   `{:missing_resource, key}` and never reads `context.resources`.
 
+  ## Overwrite order is log sequence, not wall time (section 40)
+
+  When two operations write the same key, the winner is the one that comes
+  **later in the log's writer sequence**. It is not the one with the later
+  `created_at`, not the one that arrived at this replica later, and not the one
+  whose clock says it happened last. `created_at` is a record of when a writer
+  claims to have written; it is unverified, it can go backwards, and it plays
+  no part in reduction here.
+
+  The practical consequence for a caller: an operation appended later always
+  wins, whatever any timestamp says, and two replicas reducing the same log
+  prefix agree without needing their clocks to. A caller that sorts or filters
+  by `created_at` before feeding entries in has changed the answer, and this
+  plugin cannot detect that. Feed entries in log order.
+
   ## State
 
   The plugin state is the attribute map itself: a plain `%{String.t() => json}`.

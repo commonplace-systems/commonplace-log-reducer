@@ -10,30 +10,91 @@ Realm placement, or replica synchronization.
 
 ## Status
 
-**New repo, 2026-08-23. Nothing implemented yet.**
+**The implementation lives on the `sol/impl` branch. `main` is still docs-only — no merge
+has happened.** Read this file from the branch you are on: on `main`, the packages below
+describe work that is complete on `sol/impl` and not yet merged.
+
+On `sol/impl`, as of 2026-08-23:
+
+| | |
+| --- | --- |
+| `commonplace_log_reducer` | 214 tests, 11 properties, 0 failures |
+| `commonplace_attribute_map` | 99 tests, 13 properties, 0 failures |
+| Conformance corpora | 19 canonical-JSON + 18 reducer-engine + 19 attribute-map case directories |
+| §21 error codes proven reachable by an assertion | **15 of 15** |
+| §42 acceptance criteria | all ten mapped to a runnable artifact — see below |
+
+```
+./conformance/check.sh          # both suites, both corpora, the byte rules, exit 0
+```
 
 The direction document is filed byte-identical at
 [`docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md`](docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md)
 (sha256 `248cf8f44eff61ea37ff0e05e660ddc2b95d86d363f24d249bcad5dfbe24a038`).
 It is the source of truth for scope; this README summarizes and does not extend it.
 
-## Writing a plugin in another repo
+## What is here
 
-See **[`docs/PLUGIN_AUTHORS.md`](docs/PLUGIN_AUTHORS.md)** — the seven callbacks, the
-context, registration, the plugin-error mapping, and a conformance checklist. It is
-written to be sufficient on its own: if you have to read `lib/` to build a plugin, that
-is a defect in the document, and we want to hear about it.
+| Path | What it is |
+| --- | --- |
+| [`commonplace_log_reducer/`](commonplace_log_reducer/) | the engine: envelope validation, registry, ordered single-writer reduction, epochs, views, checkpoints |
+| [`commonplace_attribute_map/`](commonplace_attribute_map/) | the reducer plugin: a JSON attribute map where the last operation in log order wins |
+| [`conformance/`](conformance/) | language-neutral JSON vectors, plus `check.sh` |
+| [`test_support/`](test_support/) | the shared test-only harness (canonical JSON, the vector runner, the §21 code recorder) |
+| [`docs/`](docs/) | the specification, and the three documents below |
 
-That is not politeness. Every plugin in this repo shares an author with the engine,
-which is the arrangement that hides accidental coupling rather than exposing it — so
-acceptance criterion §42.10 ("a second plugin can implement the same behaviour without
-changing the core API") is recorded as **not demonstrated**. An independently written
-plugin is the only thing that can change that.
+## The three documents worth reading
 
-## What is planned
+- **[`docs/PLUGIN_AUTHORS.md`](docs/PLUGIN_AUTHORS.md)** — the plugin-author contract: the
+  seven callbacks, the context, registration, the plugin-error mapping, and a conformance
+  checklist. Written to be sufficient on its own: if you have to read `lib/` to build a
+  plugin, that is a defect in the document, and we want to hear about it.
+- **[`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md)** — the §42 acceptance record. Each of the
+  ten criteria mapped to the exact test, property, or vector that demonstrates it, with the
+  command to run it, and the gaps stated where the evidence is a composition rather than a
+  single end-to-end run.
+- **[`docs/42-10-PLUGIN-BOUNDARY.md`](docs/42-10-PLUGIN-BOUNDARY.md)** — §42.10, the
+  plugin boundary, and what it cost. **Demonstrated:** an independently authored plugin, in
+  a different repository by an author who never opened this library's `lib/`, took this
+  engine as a real git dependency and ran a real log through `reduce/3` with **no engine
+  change**. That is a boundary demonstration by *one* foreign plugin — not plugin
+  generality. Read its "what this does NOT establish" section before citing it.
 
-Per the spec: projection engine, epoch protocol, reducer behavior + registry,
-deterministic replay, checkpoint format — and the attribute-map plugin (put / delete /
-patch over a JSON attribute map, last-write-in-log-order wins) shipped alongside it.
+## The seven distinctions (§40)
 
-A task plan should be written against the spec's own required-tests list before code.
+The specification requires the documentation to make these explicit. Each is stated where a
+reader actually meets it, not only in this list; the list is an index.
+
+| Distinction | Stated in |
+| --- | --- |
+| A projection epoch is **not** a log branch | `Commonplace.LogReducer.Projection` |
+| A checkpoint is **not** canonical history | `Commonplace.LogReducer.Checkpoint` |
+| Reducer version is **not** package version | `Commonplace.LogReducer.Plugin` |
+| Attribute overwrite order is **log sequence, not wall time** | `Commonplace.AttributeMap.V1` |
+| Raw replica synchronization is **not** semantic Document synchronization | `Commonplace.LogReducer` |
+| Plugins are **trusted installed code**, not code named directly by untrusted input | `Commonplace.LogReducer.Registry` |
+| **Multi-writer reduction is unsupported in version 1** | `Commonplace.LogReducer.State` |
+
+## Running everything
+
+```
+./conformance/check.sh                                   # the whole thing
+cd commonplace_log_reducer   && mix test                 # 214 tests, 11 properties
+cd commonplace_attribute_map && mix test                 # 99 tests, 13 properties
+mix format --check-formatted                             # in each project, and at the root
+```
+
+A full engine run also fires the **§21 reachability gate**: an `ExUnit.after_suite/1` hook
+that fails the run unless every one of the fifteen §21 error codes was emitted by a real
+assertion during it. A declared code that nothing can provoke is a documented behaviour
+with no implementation. The gate is gated to full runs — a filtered run legitimately emits
+fewer codes — and stands down when the suite is red, because a red suite explains itself.
+Both arms are recorded in [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md).
+
+## What a green run does not mean
+
+`conformance/check.sh` and the engine suite each print a SELECTOR block saying so. In
+short: the corpora are not exhaustive, a vector that disagrees with the specification is
+the bug, §42.10 is demonstrated *once* rather than generally, and everything outside
+reduction — persistence, process lifecycle, Document messaging, authority, replication — is
+owned elsewhere and is not exercised here at all.

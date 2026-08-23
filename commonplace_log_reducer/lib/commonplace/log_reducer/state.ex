@@ -21,6 +21,21 @@ defmodule Commonplace.LogReducer.State do
   requires a *failing* entry to advance nothing: the engine advances only after
   the body has been processed successfully.
 
+  ## Multi-writer reduction is unsupported in version 1 (sections 17, 40)
+
+  This engine reduces a **single-writer** log. The first entry pins
+  `writer_id`, and any later entry carrying a different one is
+  `multiwriter_document_unsupported` -- an explicit refusal at a named
+  coordinate, not a merge, not a last-writer-wins tiebreak, and not a silent
+  skip. The same rule holds on restore: a checkpoint naming several writer ids
+  is `invalid_checkpoint`.
+
+  This is a stated limit of version 1, not an oversight to be worked around by
+  a caller. There is no ordering rule in this specification that could relate
+  two writers' entries to each other -- `created_at` is not one, per section 20
+  -- so accepting a second writer would mean inventing an order and calling it
+  history. Concurrent writing needs a version 2 with a real merge rule.
+
   ## The first sequence number (plan decision D4, derived -- not spec text)
 
   The specification does not state the first writer sequence directly. It is

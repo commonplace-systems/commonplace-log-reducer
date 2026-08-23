@@ -30,9 +30,16 @@ canonical JSON bytes (§20), not as Elixir terms.
   `FixturePlugin.*` and `Commonplace.AttributeMap.V1` — shares an author with
   the engine. A corpus written by the same hand that wrote both sides can only
   show that the two agree; it cannot show that the plugin boundary is
-  discoverable, sufficient, or usable by an independent implementer. Only a
-  second, independently authored plugin (§41.11 names commonplace-merkle-crdt)
-  can move that claim, and it will need its own corpus.
+  discoverable, sufficient, or usable by an independent implementer, and no
+  corpus written in this repository ever can.
+
+  §42.10 **is** demonstrated — elsewhere, and once, by an independently
+  authored plugin running against an unchanged engine. See
+  [`../docs/42-10-PLUGIN-BOUNDARY.md`](../docs/42-10-PLUGIN-BOUNDARY.md). That
+  is a boundary demonstration, not plugin *generality*; a third independent
+  implementer would be a strictly stronger test. The two statements rest on
+  different evidence and are both correct — the corpus shows breadth, the
+  integration run shows the boundary.
 - **The corpus is not the specification.** Where a vector and the spec text
   disagree, the spec wins and the vector is a bug.
 - **The corpus is not exhaustive.** It states the cases §38 requires. Codes,

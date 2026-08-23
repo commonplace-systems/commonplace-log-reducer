@@ -23,6 +23,23 @@ defmodule Commonplace.LogReducer.Plugin do
     * MUST return JSON-object checkpoints; and
     * MUST validate checkpoints before restoring them.
 
+  ## Reducer version is not package version (section 40)
+
+  `reducer_version/0` is a **durable protocol version**: it appears in log
+  entries and in checkpoints, and the registry resolves `{id, version}`
+  exactly. It is not the version of the package that happens to contain the
+  module. A plugin package at version 0.4.7 and at version 1.2.0 both report
+  reducer version `1` for as long as the operation shapes, base shape, and
+  checkpoint shape are unchanged.
+
+  The rule that follows: bump the *package* version for anything a library
+  consumer notices; bump the *reducer* version only when durable meaning
+  changes, and then register the new version alongside the old, because logs
+  written under the old one must keep replaying. A reducer version bumped in
+  step with a release number would make every release invalidate its own
+  history, and a reducer version left alone through a change of durable
+  meaning silently reinterprets logs already written.
+
   Plugin state may be any immutable Elixir term. Only views and checkpoints
   cross the plugin boundary as durable or user-facing representations.
 

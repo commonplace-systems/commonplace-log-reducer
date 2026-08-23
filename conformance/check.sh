@@ -10,9 +10,10 @@
 #     unmounted corpus is a green suite over nothing;
 #   * a corpus file that breaks the byte rules of conformance/README.md.
 #
-# After a fully green run it prints the SELECTOR line: what this corpus does
+# After a fully green run it prints the SELECTOR block: what this corpus does
 # NOT establish. A conformance suite that only ever prints good news teaches
-# its readers to over-read it.
+# its readers to over-read it. See docs/ACCEPTANCE.md for the criterion-by-
+# criterion record this run is one input to.
 
 set -euo pipefail
 
@@ -127,15 +128,26 @@ green "CONFORMANCE GREEN"
 echo
 bold "SELECTOR -- what this green run does NOT mean:"
 cat <<'SELECTOR'
-  §42.10 IS NOT VALIDATED BY THIS CORPUS. Every plugin exercised here --
+  THIS CORPUS DOES NOT ARGUE §42.10. Every plugin exercised here --
   FixturePlugin.* and Commonplace.AttributeMap.V1 -- shares an author with the
   engine. A green run shows that the two sides agree; it cannot show that the
   plugin boundary is discoverable, sufficient, or usable by an independent
-  implementer. Only a second, independently authored plugin (§41.11 names
-  commonplace-merkle-crdt) can move that claim, and it will need its own
-  corpus.
+  implementer, and no corpus written in this repository ever can, however
+  large it grows.
 
-  Also not shown: that the corpus is exhaustive (it states the §38 cases and no
-  more), and that the vectors are right (where a vector and the spec disagree,
-  the spec wins and the vector is the bug).
+  §42.10 IS demonstrated -- elsewhere, and once. An independently authored
+  plugin (commonplace-merkle-crdt, a different repo and a different author who
+  never opened this library's lib/) took this engine as a real git dependency
+  and ran a real log through reduce/3 with no engine change. The record is
+  docs/42-10-PLUGIN-BOUNDARY.md; the run is docs/42-10-integration-proof.exs.
+
+  That is a boundary DEMONSTRATION, not plugin GENERALITY. One foreign plugin
+  is one data point: a third independent implementer could still find the API
+  bent toward the two plugin shapes now built against it, and would be a
+  strictly stronger test. Read the "what this does NOT establish" section of
+  that document before citing it.
+
+  Also not shown here: that the corpus is exhaustive (it states the §38 cases
+  and no more), and that the vectors are right (where a vector and the spec
+  disagree, the spec wins and the vector is the bug).
 SELECTOR
