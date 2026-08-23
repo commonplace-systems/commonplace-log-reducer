@@ -1,6 +1,19 @@
 defmodule Commonplace.LogReducer.DependencyTest do
   use ExUnit.Case, async: true
 
+  # This gate makes ABSENCE claims, so how it enumerates is load-bearing.
+  #
+  # It uses Path.wildcard/1, which walks the filesystem and does NOT consult
+  # .gitignore. That is deliberate: the shell `grep` on this box is a wrapper
+  # around ugrep with --ignore-files, and a recursive search from a repo root
+  # silently prunes ignored trees. Measured here: searching for a string that
+  # exists only in gitignored deps/ returned 0 through the wrapper and 20
+  # through `command grep`, while a tracked string returned 2 from both.
+  #
+  # A grep returning 0 over an ignored tree reports "not in the tracked corpus",
+  # which is indistinguishable from "not present". If this gate is ever
+  # reimplemented in shell, use `command grep` -- an instrument's SCOPE is an
+  # unstated parameter of every absence claim made with it.
   @lib Path.expand("../lib", __DIR__)
   @mixfile Path.expand("../mix.exs", __DIR__)
 
