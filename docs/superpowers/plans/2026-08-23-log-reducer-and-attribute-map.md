@@ -915,7 +915,26 @@ suite goes RED   -> the harness genuinely reads that file; the greens mean somet
 suite stays GREEN -> the harness is not reading it, and every tick is decoration
 ```
 
-Restore and confirm green. This is the same sabotage as forcing a gate red, aimed at
+Restore and confirm green.
+
+⭐ **Assert not just THAT it goes red but WHICH red** — the two sabotages must be
+distinguishable, because they call for opposite responses:
+
+| Sabotage | Must fail | Tells you |
+| --- | --- | --- |
+| **Rename** a case directory away | the **count floor** (19/18/1) | the corpus shrank |
+| **Corrupt one byte** of an `expected.hex` | the **byte comparison** | your canonicalizer regressed |
+
+If both produce the same red you cannot tell a shrinking corpus from a broken
+implementation. The three literals give this for free — the floor names the count, the
+comparison names the vector — but it must be *observed*, not assumed. Verified on the
+upstream corpus by its author (`21 tests 0 failures` control; rename → `20 tests,
+1 failure` at the floor; byte-corrupt → `21 tests, 1 failure` at the comparison), and
+that property **does not transfer to us**: our path resolution is new code, and "the
+harness reads the corpus" is precisely the claim that is true when written and quietly
+stops being true after a fixture move or a swallowed `{:error, :enoent}`.
+
+This is the same sabotage as forcing a gate red, aimed at
 the **corpus** rather than the assertion — because the failure mode here is not a wrong
 oracle but a *never-opened* one: a moved fixture, a changed path, a `File.read` whose
 `{:error, :enoent}` got swallowed into a default. Each of those is true-when-written and
