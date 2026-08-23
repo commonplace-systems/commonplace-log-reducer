@@ -21,6 +21,44 @@ Operations are `put`, `delete`, and `patch` (spec §§27–29). A `patch` succee
 **atomically**: every key, every value, and both cross-checks pass before any change is
 constructed.
 
+## There is no conditional write, and that is deliberate
+
+The three operations — `put`, `delete`, `patch` — are **all unconditional**. There is no
+compare-and-swap: you cannot express *"set `k` to Y only if it is currently X."*
+
+This was asked for (a CAS operation, to guard `commonplace.content.head` against a
+concurrent rollback) and **ruled closed on 2026-08-23 — closed, not deferred.** The
+reasoning, which is better than the instruction:
+
+> The LWW reducer answers a **projection** question. Expected-head answers an
+> **admission** question. They are different questions at different layers.
+
+⭐ **A conditional guard belongs above the log, at admission — before append.** By the
+time an operation is durable it is already ordered, and it *will* be applied.
+
+⚠️ **And a validation rule added to a reducer is a rule applied to the PAST.** This code
+runs at fold time, replaying permanent history. Add a rule here and every already-appended
+log that violates it stops replaying — the reduction halts and the projection becomes
+unreadable from that entry on. For an engine whose whole job is deterministic replay, that
+converts a policy change into data loss.
+
+⇒ So if you are composing this plugin with a merging projection (a CRDT, say), note the
+asymmetry: **content merges, an attribute pointing at it overwrites.** Two parties
+advancing a head attribute from the same base yield a converged document whose head
+reflects only one of them, with no error — the second `put` is perfectly valid. That is not
+a defect in either plugin; it is a property of the composition, visible only to the layer
+that sees both, and the guard for it lives there.
+
+## Reserved keys are convention, not semantics
+
+This plugin enforces **no** key namespace, prefix rule, or reserved-key list. Measured, not
+recalled: the complete key validator is five rules — non-empty, valid UTF-8, no null code
+point, at most 1024 UTF-8 **bytes**, otherwise accepted. `commonplace.*` reaches storage
+unimpeded, and an ordinary `put` will overwrite `commonplace.content.head`.
+
+Anything relying on a reserved-key rule must enforce it at admission and must not assume a
+naming convention is enforced below it.
+
 ## Two distinctions this package exists to keep
 
 - **Overwrite order is log sequence, not wall time (§40).** The later entry in the writer
