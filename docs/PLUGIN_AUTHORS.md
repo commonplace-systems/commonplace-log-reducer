@@ -87,6 +87,22 @@ Exact signatures:
 `state` is **any immutable Elixir term** — it never leaves the BEAM. Only `view/1` and
 `checkpoint/1` cross the boundary as user-facing or durable representations.
 
+### What the engine has already checked before calling you
+
+The engine validates the *envelope* before your callback runs, so by the time you are
+invoked: the body is a JSON object, its `projection` name is valid, its `epoch_id` is a
+lowercase canonical UUID, the field set is exactly right, **and `base` (§9) and
+`operation` (§10) are each already confirmed to be JSON objects.**
+
+⚠️ **Validate them anyway.** §12.1 requires you to validate every base and every
+operation, and a plugin is directly callable — by your own tests, by a future host, by a
+tool. It means a reason like `base_not_object` is unreachable *through the engine* and
+reachable only by a direct call; keep it, and know that a conformance vector driven
+through the engine cannot exercise it.
+
+What the engine does **not** check is anything semantic: the shape of your operation
+beyond "is an object", your key rules, your value rules, your field sets. All yours.
+
 `base`, `operation`, and `checkpoint` arrive as **string-keyed maps** decoded from JSON.
 Keep them string-keyed. Never convert a key or value from durable content into an atom
 (§11, §22) — that is how untrusted log content reaches your module namespace.
@@ -133,6 +149,12 @@ Keys are `{id_binary, version_integer}`. **`reducer_id/0` and `reducer_version/0
 return exactly the id and version you are registered under.** This is checked at
 registry construction, not at reduce time, so a mismatch is a startup error rather than
 a run that silently produces checkpoints labelled with the wrong reducer.
+
+Concretely, `Commonplace.LogReducer.Registry.build(%{{id, version} => module})` returns
+`{:ok, registry} | {:error, {:invalid_registry, reason}}` and is where the identity check
+happens, and `Registry.resolve(registry, id, version)` returns
+`{:ok, module} | {:error, %Error{code: :unknown_reducer}}`. Those two are all you need to
+write your own identity test.
 
 Durable log entries name your reducer only by that `{id, version}` string pair. They
 never name an Elixir module, and the engine will not fall back to a different version:
@@ -232,7 +254,8 @@ Derived from §38/§39. If your plugin passes these, it is very likely correct:
 - [ ] epoch replacement uses a complete base and discards prior state
 - [ ] checkpoint round-trips through restore
 - [ ] a malformed checkpoint is rejected
-- [ ] identical entry order with different `created_at` yields the identical view
+- [ ] no field of the context changes the result — the plugin-level form of the
+      `created_at` rule (see below)
 
 **Properties**
 - [ ] full replay == checkpoint restore + suffix replay
@@ -240,14 +263,40 @@ Derived from §38/§39. If your plugin passes these, it is very likely correct:
 - [ ] every rejected operation leaves state unchanged
 - [ ] replay produces byte-identical canonical views and checkpoints
 
-⭐ **The atomicity case is the one most implementations get wrong.** The natural
-implementation validates and applies in a single fold, so a five-part operation whose
-last part is invalid has already applied the first four. Validate everything first, then
-apply.
+⭐ **The atomicity case — and a correction, because the obvious rationale is wrong on
+the BEAM.**
 
-⭐ **The `created_at` case is the one nobody writes.** Re-run a generated history with
-timestamps shuffled and assert the view, the checkpoint, *and* any failure coordinate
-are unchanged. That is what proves timestamps are not load-bearing in your code.
+An earlier version of this document said: "the natural implementation validates and
+applies in a single fold, so a five-part operation whose last part is invalid has
+already applied the first four." **That is a mutable-language failure mode and it does
+not exist here.** Plugin state is an immutable term. A partially-built map that is never
+returned cannot be observed by anyone, so a fold that ends in `{:error, reason}` *is*
+atomic. Measured, not argued: rewriting the first plugin's patch path as a
+validate-and-apply fold left its atomicity test green, correctly.
+
+⇒ **The reachable bug in Elixir is different: returning `{:ok, partial}` instead of
+`{:error, reason}`.** A fold that halts on an invalid part and returns the accumulator
+applies everything before the failure and reports success — which is also a §12.1
+violation ("MUST NOT silently ignore an operation addressed to it"), because the engine
+advances the head over an operation that was never fully applied.
+
+So write the test to assert **both**: that an invalid multi-part operation returns an
+error, *and* that the returned state is unchanged. Asserting only "state unchanged" will
+pass against the wrong implementation.
+
+The advice is still validate-everything-then-apply-everything — it is clearer and it
+generalizes to plugins holding mutable resources. Only the stated failure mode was
+wrong.
+
+⭐ **The `created_at` case is the one nobody writes — but you cannot write it alone.**
+A plugin never sees `created_at`; the engine strips it and never passes it on. So the
+engine owns the end-to-end version (re-run a history with timestamps shuffled; assert
+view, checkpoint, *and* failure coordinate are unchanged).
+
+Your plugin-level equivalent is stronger and is worth writing: **vary every field of the
+`%Context{}` and assert the result does not change.** The context is the only channel
+through which ambient information could reach you, so if nothing in it moves your
+output, nothing outside your state and operation can.
 
 ---
 
