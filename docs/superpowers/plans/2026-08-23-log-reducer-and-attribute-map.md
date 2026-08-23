@@ -52,14 +52,36 @@ the deferred adapter task, recorded here so they are not lost:*
    legitimately reachable. Our own §17 refusal is therefore load-bearing, not
    belt-and-braces. Keep it.*
 
-**D3 — JCS lives in test support, validated against the sibling's vector corpus.**
+**D3 — JCS lives in *shared* test support, validated against the sibling's corpus.**
 Canonical JSON is only needed to *compare* views and checkpoints (§20, §38), never at
-runtime. So it is `test/support/jcs.ex`, not a public module. Hand-rolling JCS is
-exactly where subtle bugs hide (number formatting, escape selection), so we do not
-trust ours until it passes the 18 already-proven vectors copied from
-`~/commonplace-log/conformance/canonical-json/` — including `999-deliberate-mismatch`,
-which must *fail*. Those vectors are language-neutral fixture files; copying them
-couples us to no code.
+runtime. So it is test-only, not a public module — but it is needed by **both**
+projects' conformance harnesses, and the obvious placement does not work:
+
+> Mix compiles path dependencies in `MIX_ENV=prod` regardless of the parent's env. So
+> if JCS lived in `commonplace_log_reducer/test/support/`, then when
+> `commonplace_attribute_map` runs `mix test`, its engine dependency compiles with
+> `elixirc_paths(_) -> ["lib"]` and the module simply would not exist.
+
+So shared test code lives in a **repo-root `test_support/` directory**, and *each*
+project compiles it into its own test build:
+
+```elixir
+defp elixirc_paths(:test), do: ["lib", "test/support", "../test_support"]
+defp elixirc_paths(_), do: ["lib"]
+```
+
+One copy, no duplication, no dependency-env trickery, and it ships in neither package
+because it is absent from the non-test path. Repo-root `test_support/` holds only what
+both need — `jcs.ex` and the vector-walking helper. Engine-only fixtures (the fixture
+plugins) stay in `commonplace_log_reducer/test/support/`.
+
+Hand-rolling JCS is exactly where subtle bugs hide (number formatting, escape
+selection), so we do not trust ours until it passes the already-proven corpus copied
+from `~/commonplace-log/conformance/canonical-json/`. Measured 2026-08-23:
+**19 case directories — 18 that must match, and exactly 1 (`999-deliberate-mismatch`)
+that must *mismatch*.** State those as three literals, never as a count of what the
+walk found (Task 9 Step 2). Those vectors are language-neutral fixture files; copying
+them couples us to no code.
 
 **D4 — Contiguity is derived as `seq == head_seq + 1`, `prev == head_entry_id`.**
 The spec never spells out the first sequence number, but §19 says "subsequent input
@@ -92,8 +114,7 @@ case 9. There is a dedicated test for this.
 | `lib/commonplace/log_reducer/state.ex` | Engine state struct + entry-chain validation + head tracking (§6, §14, §16, §17). |
 | `lib/commonplace/log_reducer/engine.ex` | The §16 processing algorithm: classify, route, apply atomically, advance head. |
 | `lib/commonplace/log_reducer/checkpoint.ex` | Encode/decode the §19 core checkpoint. |
-| `test/support/jcs.ex` | Test-only RFC 8785 canonicalizer (D3). |
-| `test/support/fixture_plugin.ex` | Trivial in-test plugins so the engine is tested with **no** dependency on attribute-map. |
+| `test/support/fixture_plugin.ex` | Trivial in-test plugins so the engine is tested with **no** dependency on attribute-map. Engine-only. |
 
 ### `commonplace_attribute_map/` (app `:commonplace_attribute_map`)
 
@@ -112,6 +133,8 @@ case 9. There is a dedicated test for this.
 | `conformance/reducer-engine/` | The 16 §38 engine cases. |
 | `conformance/attribute-map/` | The 17 §38 plugin cases. |
 | `conformance/check.sh` | Runs both suites; **must** exit non-zero when a `9xx-` case unexpectedly passes. |
+| `test_support/jcs.ex` | Test-only RFC 8785 canonicalizer, compiled into **both** projects' test builds (D3). |
+| `test_support/vector_case.ex` | Shared corpus walker: discovers cases, enforces the literal counts, splits `9xx` from the pass gate. |
 
 ---
 
@@ -178,7 +201,7 @@ defmodule CommonplaceLogReducer.MixProject do
 
   def application, do: [extra_applications: [:logger]]
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "test/support", "../test_support"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
@@ -195,7 +218,8 @@ boundary (D1).
 
 - [ ] **Step 3: Write `commonplace_attribute_map/mix.exs`**
 
-Same shape, plus:
+Same shape — **including the same `elixirc_paths(:test)` with `"../test_support"`**
+(D3) — plus:
 
 ```elixir
   defp deps do
@@ -252,7 +276,10 @@ defmodule Commonplace.LogReducer.DependencyTest do
           "String.to_existing_atom",
           ":httpc",
           "File.read",
-          "Code.ensure",
+          "Code.eval",
+          "Code.compile",
+          "Code.require_file",
+          "Code.load_file",
           ":os.timestamp",
           "DateTime.utc_now",
           ":rand."
@@ -263,23 +290,54 @@ defmodule Commonplace.LogReducer.DependencyTest do
 end
 ```
 
+**`Code.ensure_loaded?/1` is deliberately NOT on that list, and must not be added.**
+§22 forbids *loading arbitrary code* — evaluating or compiling code named by untrusted
+input. Resolving an already-compiled module that the host put in its own registry is
+neither. The distinction is load-bearing in both directions:
+
+- Task 4 needs `Code.ensure_loaded?/1` before `function_exported?/3`, because
+  `function_exported?/3` returns `false` for a module that is merely not loaded yet.
+  Without the ensure, registry validation would reject **correct** registries depending
+  on load order — a gate that fires on known-good state, which is worse than no gate.
+- The four `Code.*` entries above are the ones that would actually let durable log
+  content select code, which is exactly what §11 and §22 forbid.
+
 Every one of these asserts a **positive control first** — a scan that found no files,
 or scanned the wrong files, returns "no forbidden strings" and looks exactly like a
 pass. (See the repo's global rule on absence having more than one cause.)
 
-- [ ] **Step 6: Prove the gate can go red**
+- [ ] **Step 6: Create the stub module the gate needs in order to mean anything**
+
+`commonplace_log_reducer/lib/commonplace/log_reducer.ex`:
+
+```elixir
+defmodule Commonplace.LogReducer do
+  @moduledoc "Public API. Implemented across tasks 2-9."
+end
+```
+
+This must exist **before** the first run. The gate's positive controls
+(`assert paths != []`, `assert source =~ "LogReducer"`) are designed to fail against an
+empty `lib/` — that is the point of them — so running them first would produce a red
+that proves nothing about the boundary.
+
+- [ ] **Step 7: Observe the gate GREEN on known-good input**
 
 ```bash
 cd commonplace_log_reducer && mix deps.get && mix test test/dependency_test.exs
 ```
 Expected: PASS (3 tests).
 
-Now temporarily add `# AttributeMap` as a comment in any `lib/**.ex` file (create
-`lib/commonplace/log_reducer.ex` with just a module stub if none exists yet), re-run,
-and **observe the failure**. Revert. Record both outcomes in the commit message. A gate
-never seen to fail is not known to work.
+- [ ] **Step 8: Observe the gate RED on known-bad input**
 
-- [ ] **Step 7: Commit**
+Temporarily add `# AttributeMap` as a comment inside
+`lib/commonplace/log_reducer.ex`, re-run, and **observe the failure**. Then revert and
+re-run to confirm green again.
+
+Paste both outcomes into the commit message. A gate that has never been watched failing
+is not known to work — green and broken share an observable until you force a red.
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -549,7 +607,7 @@ test "replacing one projection's epoch leaves another projection untouched"  # �
 test "an operation before any epoch yields projection_not_initialized"
 test "an operation naming a stale epoch yields stale_epoch"
 test "an operation routes only to its own projection"
-test "a plugin refusing an operation stops at that entry"
+test "a plugin refusing an operation yields invalid_operation and stops at that entry"
 test "the failing entry advances no head and changes no projection"  # §15.1
 test "two projections evolve independently at one shared head"
 test "a missing resource yields missing_resource"
@@ -568,6 +626,23 @@ test "splitting the same entries into two reduce/3 calls gives the same state"
 Atomicity (§16): build the candidate new state *fully* before committing it. Because
 Elixir terms are immutable this is free — compute `{:ok, new_projection}` and only then
 `put_in` it. Never mutate then roll back.
+
+**Plugin-error → engine-code mapping. The spec does not define this, so this plan is
+the only source — pin it here or two implementers will pick differently and the
+conformance vectors will disagree with the code:**
+
+| Plugin callback returning `{:error, reason}` | Engine `Error.code` |
+| --- | --- |
+| `init/2` | `invalid_epoch_base` |
+| `apply/3` | `invalid_operation` |
+| `restore/2` | `invalid_checkpoint` |
+| **any**, when `reason` is `{:missing_resource, key}` | `missing_resource` |
+
+The last row overrides the other three. `{:missing_resource, key}` is the one
+structurally-recognized reason shape, because §13 requires a reducer to return an
+explicit missing-resource error rather than fetch anything itself. Every other `reason`
+is opaque to the engine and is carried through verbatim into `Error.details.reason`
+— the engine must never branch on it (§21: messages are not protocol identifiers).
 
 - [ ] **Step 4: Run to verify they pass.**
 - [ ] **Step 5: Commit** — `feat(engine): §16 processing algorithm, epoch install and operation routing`
@@ -655,7 +730,7 @@ Note `apply/3` collides with `Kernel.apply/3` — add `import Kernel, except: [a
 **Files:**
 - Create: `commonplace_log_reducer/lib/commonplace/log_reducer/checkpoint.ex`
 - Modify: `commonplace_log_reducer/lib/commonplace/log_reducer.ex` (add `view/2`, `views/1`, `checkpoint/1`, `restore/3`)
-- Create: `commonplace_log_reducer/test/support/jcs.ex`
+- Create: `test_support/jcs.ex`, `test_support/vector_case.ex` (repo root, D3)
 - Test: `commonplace_log_reducer/test/checkpoint_test.exs`
 - Test: `commonplace_log_reducer/test/jcs_test.exs`
 
@@ -664,15 +739,52 @@ Note `apply/3` collides with `Kernel.apply/3` — add `import Kernel, except: [a
 ```bash
 mkdir -p conformance/canonical-json
 cp -r ~/commonplace-log/conformance/canonical-json/. conformance/canonical-json/
-ls conformance/canonical-json | wc -l   # expect 19 (18 real + 999-deliberate-mismatch)
+ls -d conformance/canonical-json/*/ | wc -l   # expect exactly 19
 ```
+
+Counts verified by direct measurement on 2026-08-23, and stated in that corpus's own
+`README.md` (commit `dd937c5`) so a future reader gets a number rather than a directory
+count: **19 discovered, 18 must match, exactly 1 (`999-deliberate-mismatch`) must
+mismatch.**
 
 - [ ] **Step 2: Write `jcs_test.exs`** — walk every vector directory, read `input.json`
 as **bytes**, canonicalize, compare to `Base.decode16!(expected, case: :lower)`.
-Assert the corpus is non-empty first (positive control). Assert `999-deliberate-mismatch`
-**mismatches**; a run where it passes is a broken harness, not a green suite.
 
-- [ ] **Step 3: Run to verify it fails. Step 4: Implement `test/support/jcs.ex`.
+**Assert the three counts as literals, not as whatever the walk happened to find:**
+
+```elixir
+@expected_total 19
+@expected_pass_gate 18
+@expected_mismatch 1
+
+test "the corpus is the size we think it is" do
+  dirs = Path.wildcard(Path.join(@corpus, "*")) |> Enum.filter(&File.dir?/1)
+  names = Enum.map(dirs, &Path.basename/1)
+  {wrong, pass} = Enum.split_with(names, &String.starts_with?(&1, "9"))
+
+  assert length(names) == @expected_total
+  assert length(pass) == @expected_pass_gate
+  assert length(wrong) == @expected_mismatch
+end
+```
+
+A floor derived by counting the directories present is vacuous — it passes for a corpus
+that has silently lost half its cases. The literal is the anti-vacuity floor. If this
+test fails because the upstream corpus legitimately grew, update the literal *and* the
+SELECTOR statement in the same commit; new vectors are announced-safe, but a *shrinking*
+corpus is the thing this catches.
+
+Then: every non-`9xx` case must match, and `999-deliberate-mismatch` must **mismatch**.
+A run where 999 passes is a broken harness reporting green, not a green suite.
+
+**Where a hand-rolled canonicalizer actually breaks** (flagged by the corpus's author,
+worth knowing before debugging blind): ECMAScript number formatting at the
+decimal/exponential boundaries, and UTF-16 code-unit key ordering, which **disagrees
+with code-point order for astral characters**. Cases `001`, `004`, and `009`–`015`
+are the discriminating ones — if those pass, the implementation is probably correct
+rather than accidentally correct.
+
+- [ ] **Step 3: Run to verify it fails. Step 4: Implement `test_support/jcs.ex`.
 Step 5: Run until all 18 pass and 999 mismatches.**
 
 - [ ] **Step 6: Write the failing view/checkpoint tests**
@@ -690,8 +802,10 @@ test "restore rebuilds a state whose views equal the original's"
 test "restore resolves the exact reducer id and version from the registry"
 test "restore calls each plugin's restore callback"
 test "a checkpoint naming an unknown reducer yields unknown_reducer"
-test "a malformed projection name in a checkpoint is rejected"
-test "a checkpoint with two writer ids is rejected"
+test "a malformed projection name in a checkpoint yields invalid_checkpoint"
+test "a duplicate projection name in a checkpoint yields invalid_checkpoint"   # §19
+test "a checkpoint with two writer ids yields invalid_checkpoint"              # §19
+test "a plugin refusing its own checkpoint yields invalid_checkpoint"          # §12.1
 test "checkpoint plus suffix equals full replay"                      # §38.15 / §42.7
 test "input after restore must begin at head.writer_seq + 1 with the right predecessor"
 ```
@@ -804,9 +918,22 @@ the exact test or vector that demonstrates it, with the command to run it. Crite
 plugin yet — record it as **not demonstrated**, and say so plainly rather than
 claiming coverage.
 
-- [ ] **Step 3: Update the repo README** to describe what now exists.
+- [ ] **Step 3: Add a code-reachability gate**
 
-- [ ] **Step 4: Run everything and paste real output into the commit**
+`commonplace_log_reducer/test/code_reachability_test.exs` — assert that every one of
+the 15 §21 codes is actually *produced* by some test in the suite, not merely declared
+in the struct. Implement by having the conformance and engine suites record each
+emitted code into an ETS table or an agent-free module attribute accumulator, then
+assert set equality against `Error.codes()` at the end of the run.
+
+A code that is declared but that no code path can emit is a documented behaviour with
+no implementation — the exact gap that reads as covered. If a code genuinely cannot be
+reached yet, this test must list it as an explicit, named exemption rather than being
+weakened to a subset check.
+
+- [ ] **Step 4: Update the repo README** to describe what now exists.
+
+- [ ] **Step 5: Run everything and paste real output into the commit**
 
 ```bash
 (cd commonplace_log_reducer && mix test) && \
@@ -814,7 +941,7 @@ claiming coverage.
 ./conformance/check.sh
 ```
 
-- [ ] **Step 5: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
+- [ ] **Step 6: Commit** — `docs: §40 distinctions, §42 acceptance map with honest gaps`
 
 ---
 
