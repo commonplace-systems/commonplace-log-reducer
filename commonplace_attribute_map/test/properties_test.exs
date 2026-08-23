@@ -91,13 +91,27 @@ defmodule Commonplace.AttributeMap.PropertiesTest do
 
   # A single valid operation. Every shape here is one section 27-29 accepts, so
   # a generated history is valid by construction rather than by luck.
+  #
+  # `put` of a literal null is drawn as its OWN weighted branch rather than
+  # left to fall out of value/0. It is the case that distinguishes "present
+  # with a null value" from "absent", so properties 1 and 2 are vacuous on any
+  # corpus lacking it -- and value/0 wraps its leaves in tree/2, which makes a
+  # bare top-level nil rare enough that whole corpora came out without one.
+  #
+  # Measured before this change: the generator-health assertion failed on
+  # roughly 1 run in 12. Intermittently, so the two properties silently proved
+  # nothing on those runs -- and a gate that reddens 1 run in 12 is one that
+  # gets disabled rather than investigated. Weighting it makes the case
+  # structural instead of statistical.
   defp operation do
-    one_of([
-      map(tuple({key(), value()}), fn {k, v} ->
-        %{"type" => "put", "key" => k, "value" => v}
-      end),
-      map(key(), fn k -> %{"type" => "delete", "key" => k} end),
-      patch()
+    frequency([
+      {3,
+       map(tuple({key(), value()}), fn {k, v} ->
+         %{"type" => "put", "key" => k, "value" => v}
+       end)},
+      {2, map(key(), fn k -> %{"type" => "put", "key" => k, "value" => nil} end)},
+      {3, map(key(), fn k -> %{"type" => "delete", "key" => k} end)},
+      {3, patch()}
     ])
   end
 
