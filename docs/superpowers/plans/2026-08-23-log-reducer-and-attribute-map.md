@@ -164,6 +164,26 @@ permitted. **Consequence for Task 7:** `reduce/3` must surface both shapes, and 
 pattern-matching only on `%Error{}` will miss the contract-breach case — document that
 on `reduce/3` rather than smoothing it over.
 
+**D8 — Push after every task. "Committed" is not "filed".**
+Caught 2026-08-23 by boss-clod: thirteen commits — the whole plan, every recorded
+decision, and the implementation through Task 7 — existed on exactly one disk, and I had
+told someone a document was "filed at (main, `1df1015`)" and meant it.
+
+⭐ **Durable-to-a-compaction and durable-to-a-machine are different properties.** This
+plan is careful about the first: decisions, gate reasoning, and findings go into files so
+a successor starts from artifacts rather than from a summary. None of that addresses
+losing the machine, which is the failure that actually loses work.
+
+⛔ **A commit SHA has the syntax of a published artifact and the durability of a local
+one**, and nothing in how it is quoted distinguishes them. So:
+
+- **push after each task's commit**, not at the end of the plan;
+- **before telling anyone something is filed, verify the remote ref** —
+  `git ls-remote --heads origin` — rather than quoting a SHA that happens to be local;
+- verify against the remote listing, **not the push command's exit code**, and keep a
+  positive control (a nonexistent branch must return nothing) so a misdirected or
+  over-broad query cannot read as success.
+
 ---
 
 ## Gate discipline (applies to every gate this plan lands)
