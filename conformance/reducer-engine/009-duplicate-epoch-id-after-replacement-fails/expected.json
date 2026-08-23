@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "duplicate_epoch",
+    "writer_seq": 3,
+    "entry_id": "0198e000-0000-7000-8000-000000000003",
+    "projection": "content",
+    "head": {
+      "writer_seq": 2,
+      "entry_id": "0198e000-0000-7000-8000-000000000002"
+    }
+  }
+}

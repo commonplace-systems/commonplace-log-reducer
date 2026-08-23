@@ -1,0 +1,20 @@
+{
+  "ok": {
+    "head": {
+      "writer_seq": 2,
+      "entry_id": "0198e000-0000-7000-8000-000000000002"
+    },
+    "projections": {},
+    "views": {},
+    "checkpoint": {
+      "version": 1,
+      "log_id": "0198d83c-eaf8-7c5d-b1e3-4387f1d8d9b8",
+      "writer_id": "0198d83d-54de-7c06-b574-ea1fb40d3a86",
+      "head": {
+        "writer_seq": 2,
+        "entry_id": "0198e000-0000-7000-8000-000000000002"
+      },
+      "projections": {}
+    }
+  }
+}

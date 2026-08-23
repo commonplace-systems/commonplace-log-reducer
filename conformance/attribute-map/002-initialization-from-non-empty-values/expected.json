@@ -1,0 +1,73 @@
+{
+  "ok": {
+    "head": {
+      "writer_seq": 1,
+      "entry_id": "0198f200-0000-7000-8000-000000000001"
+    },
+    "projections": {
+      "attributes": {
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "commonplace.attribute-map",
+          "version": 1
+        }
+      }
+    },
+    "views": {
+      "attributes": {
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "commonplace.attribute-map",
+          "version": 1
+        },
+        "head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "value": {
+          "commonplace.title": "Hello",
+          "n": 3
+        }
+      }
+    },
+    "checkpoint": {
+      "version": 1,
+      "log_id": "0198f11a-2c40-7b31-9c1d-0d9a7c2f4411",
+      "writer_id": "0198f11a-9d02-7a55-8e77-3c5b1f60d922",
+      "head": {
+        "writer_seq": 1,
+        "entry_id": "0198f200-0000-7000-8000-000000000001"
+      },
+      "projections": {
+        "attributes": {
+          "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+          "seen_epoch_ids": [
+            "0198fa00-0000-7000-8000-000000000001"
+          ],
+          "epoch_head": {
+            "writer_seq": 1,
+            "entry_id": "0198f200-0000-7000-8000-000000000001"
+          },
+          "reducer": {
+            "id": "commonplace.attribute-map",
+            "version": 1
+          },
+          "state": {
+            "values": {
+              "commonplace.title": "Hello",
+              "n": 3
+            }
+          }
+        }
+      }
+    }
+  }
+}

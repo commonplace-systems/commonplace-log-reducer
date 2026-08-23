@@ -1,0 +1,33 @@
+{
+  "error": {
+    "code": "invalid_operation",
+    "writer_seq": 3,
+    "entry_id": "0198f200-0000-7000-8000-000000000003",
+    "projection": "attributes",
+    "head": {
+      "writer_seq": 2,
+      "entry_id": "0198f200-0000-7000-8000-000000000002"
+    },
+    "reason": "overlapping_patch_key",
+    "views": {
+      "attributes": {
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "epoch_head": {
+          "writer_seq": 1,
+          "entry_id": "0198f200-0000-7000-8000-000000000001"
+        },
+        "reducer": {
+          "id": "commonplace.attribute-map",
+          "version": 1
+        },
+        "head": {
+          "writer_seq": 2,
+          "entry_id": "0198f200-0000-7000-8000-000000000002"
+        },
+        "value": {
+          "a": 1
+        }
+      }
+    }
+  }
+}

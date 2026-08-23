@@ -1,0 +1,59 @@
+{
+  "log_id": "0198f11a-2c40-7b31-9c1d-0d9a7c2f4411",
+  "registry": [
+    {
+      "id": "commonplace.attribute-map",
+      "version": 1,
+      "plugin": "attribute-map-v1"
+    }
+  ],
+  "entries": [
+    {
+      "log_id": "0198f11a-2c40-7b31-9c1d-0d9a7c2f4411",
+      "entry_id": "0198f200-0000-7000-8000-000000000001",
+      "writer_id": "0198f11a-9d02-7a55-8e77-3c5b1f60d922",
+      "writer_seq": 1,
+      "prev_entry_id": null,
+      "created_at": "2026-03-01T00:00:01Z",
+      "body": {
+        "type": "commonplace.reducer.epoch",
+        "version": 1,
+        "projection": "attributes",
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "parent_epoch_id": null,
+        "reducer": {
+          "id": "commonplace.attribute-map",
+          "version": 1
+        },
+        "base": {
+          "values": {
+            "x": 1,
+            "y": 2
+          }
+        }
+      }
+    },
+    {
+      "log_id": "0198f11a-2c40-7b31-9c1d-0d9a7c2f4411",
+      "entry_id": "0198f200-0000-7000-8000-000000000002",
+      "writer_id": "0198f11a-9d02-7a55-8e77-3c5b1f60d922",
+      "writer_seq": 2,
+      "prev_entry_id": "0198f200-0000-7000-8000-000000000001",
+      "created_at": "2026-03-01T00:00:02Z",
+      "body": {
+        "type": "commonplace.reducer.operation",
+        "version": 1,
+        "projection": "attributes",
+        "epoch_id": "0198fa00-0000-7000-8000-000000000001",
+        "operation": {
+          "type": "patch",
+          "put": {},
+          "delete": [
+            "x",
+            "x"
+          ]
+        }
+      }
+    }
+  ]
+}

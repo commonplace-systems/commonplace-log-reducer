@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "unknown_reducer",
+    "writer_seq": 1,
+    "entry_id": "0198e000-0000-7000-8000-000000000001",
+    "projection": "content",
+    "head": null
+  }
+}
