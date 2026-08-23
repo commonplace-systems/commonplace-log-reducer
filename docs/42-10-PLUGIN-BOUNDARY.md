@@ -46,6 +46,41 @@ snapshot ref  : code=invalid_operation seq=5 reason={:snapshot_unsupported, "dea
 prefix head   : 4 (unchanged: true)
 ```
 
+## The controls — added after the fact, and they found something
+
+⚠️ **The first time this ran I read the green output and believed it, without ever
+controlling the instrument that carried the discriminating power.** Every gate in this
+repository is held to "show it can go red"; the run that demonstrates the repo's hardest
+criterion was not. Corrected:
+
+| Control | Expected | Result |
+| --- | --- | --- |
+| change the input text | the view must change | `%{"text" => "GOODBYEMOON"}` ✅ |
+| corrupt the update payload | must not print a clean view | `code: :invalid_operation` ✅ |
+| register under a wrong id | the identity check must bite | `{:reducer_id_mismatch, %{registered: "wrong.id", reported: "commonplace.merkle-crdt"}}` ✅ |
+
+⭐ **And running them found a real defect in this document: the committed reproduction
+script no longer reproduced.** The plugin's epoch-base shape changed from
+`{version, applied}` to `{version, entries}` when its author unified base and checkpoint
+under one validator. The script was pinned to nothing, so "reproduce with `mix run …`"
+had silently stopped being true.
+
+⛔ **That is the same defect class as an unpinned hash**, and it is worse here because
+the failure is silent to anyone who does not run it. **A reproduction script that depends
+on a moving external repository is only valid at a stated commit.**
+
+### Versions this was verified at
+
+| | |
+| --- | --- |
+| engine (this repo) | `sol/impl`, unchanged across both runs |
+| plugin, first run | `f7bb085` — base shape `{version, applied}` |
+| plugin, re-verified | `53df66e` — base shape `{version, entries}` |
+
+The script in this repo tracks the **later** shape. If it fails against a future plugin
+commit, that is the plugin's format moving, **not** §42.10 regressing — the engine is the
+invariant here, and it did not change between the two runs.
+
 ## What each line establishes
 
 | Line | Establishes |

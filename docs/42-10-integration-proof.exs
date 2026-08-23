@@ -31,7 +31,7 @@ entries = [
   entry.(1, nil, %{"type" => "commonplace.reducer.epoch", "version" => 1,
     "projection" => "content", "epoch_id" => epoch, "parent_epoch_id" => nil,
     "reducer" => %{"id" => "commonplace.merkle-crdt", "version" => 1},
-    "base" => %{"version" => 1, "applied" => []}}),
+    "base" => %{"version" => 1, "entries" => []}}),
   entry.(2, "e1", %{"type" => "app.unrelated", "note" => "engine must skip this"}),
   entry.(3, "e2", %{"type" => "commonplace.reducer.operation", "version" => 1,
     "projection" => "content", "epoch_id" => epoch, "operation" => commit.(i1, nil, u1)}),
