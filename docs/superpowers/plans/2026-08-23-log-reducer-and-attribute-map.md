@@ -130,6 +130,33 @@ case 9. There is a dedicated test for this.
 
 ---
 
+## Gate discipline (applies to every gate this plan lands)
+
+This plan installs five gates: the boundary test (Task 1), the JCS corpus floor
+(Task 9), the two `9xx` conformance controls (Task 10), and the code-reachability gate
+(Task 12). Each has an explicit step demonstrating it can go **red**, and each is then
+confirmed **green** on the real thing. Both arms, every time.
+
+**If the two arms are ever traded off, verify RED first.** They are not equally
+dangerous, and the symmetry of "false red vs false green" hides it:
+
+| | What happens | Cost |
+| --- | --- | --- |
+| **False red** (gate ran with no subject) | Somebody must explain the failure | A review cycle. **It self-reports.** |
+| **False green** (gate never actually fired) | Nothing to explain, nothing to look at | Unbounded. **It is silent, and it ships.** |
+
+A gate never seen red produces greens forever and each one reads as evidence. That is
+why the red arm is the non-negotiable one.
+
+**And a gate that fires on *correct* input is worse than no gate** — it trains people
+to route around it, and a routed-around gate protects nothing while still reading as
+installed. The `Code.ensure_loaded?/1` case in Task 1 is exactly that shape: correct
+code forbidden by a rule written from one legitimate use case. Which is why every
+forbidden-string list here must be shown to stay green on the real implementation, not
+merely to go red on a planted violation.
+
+---
+
 ## File structure
 
 ### `commonplace_log_reducer/` (app `:commonplace_log_reducer`)
