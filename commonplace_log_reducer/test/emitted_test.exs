@@ -12,11 +12,13 @@ defmodule EmittedTest do
 
   setup do
     existed? = :ets.whereis(:emitted_codes) != :undefined
+
     on_exit(fn ->
       if not existed? and :ets.whereis(:emitted_codes) != :undefined do
         :ets.delete(:emitted_codes)
       end
     end)
+
     %{pre_existing: existed?}
   end
 

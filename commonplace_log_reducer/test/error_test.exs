@@ -20,11 +20,16 @@ defmodule Commonplace.LogReducer.ErrorTest do
   end
 
   test "an error carries the stable code and failing coordinate" do
-    e = Error.new(:stale_epoch, log_id: "L", writer_seq: 47, entry_id: "E",
-                  projection: "content", details: %{expected: "a", actual: "b"})
+    e =
+      Error.new(:stale_epoch,
+        log_id: "L",
+        writer_seq: 47,
+        entry_id: "E",
+        projection: "content",
+        details: %{expected: "a", actual: "b"}
+      )
 
-    assert %Error{code: :stale_epoch, writer_seq: 47, entry_id: "E",
-                  projection: "content"} = e
+    assert %Error{code: :stale_epoch, writer_seq: 47, entry_id: "E", projection: "content"} = e
     assert e.details == %{expected: "a", actual: "b"}
   end
 
