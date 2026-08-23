@@ -1,0 +1,6 @@
+.worktrees/
+_build/
+deps/
+*.ez
+erl_crash.dump
+.elixir_ls/
