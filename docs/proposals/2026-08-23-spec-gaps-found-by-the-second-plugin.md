@@ -10,6 +10,13 @@
 > expected' is true". That is a design fact; the spec text is unchanged and the
 > amendment below remains open for its owner.
 
+> **Open residual on §12.2, not worth an amendment on its own — fold into Amendment 2
+> if one ever happens.** §12.2 pins the shape of `{:missing_resource, key}` but does not
+> say that `key` should be a key of §13's `resources` map. It is strongly implied by
+> proximity, but a plugin could return an internal identifier no caller can resolve, and
+> the engine would classify it correctly while the caller could do nothing with it.
+> One clause fixes it. Raised by commonplace-merkle-crdt after verifying the amendment.
+
 **Status:** Proposed amendments to the 2026-08-22 spec. **Not applied** — the
 specification at `docs/proposals/2026-08-22-commonplace-log-reducer-and-attribute-map-spec.md`
 is filed byte-identical to jes's original (sha256
