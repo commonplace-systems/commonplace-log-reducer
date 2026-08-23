@@ -5,8 +5,9 @@ defmodule Commonplace.LogReducer.DependencyTest do
   #
   # It uses Path.wildcard/1, which walks the filesystem and does NOT consult
   # .gitignore. That is deliberate: the shell `grep` on this box is a wrapper
-  # around ugrep with --ignore-files, and a recursive search from a repo root
-  # silently prunes ignored trees. Measured here: searching for a string that
+  # around ugrep with --ignore-files AND -I (skip binary files) -- two separate
+  # narrowings on one line, easily confused for each other. Measured here with
+  # a planted ASCII file to isolate the ignore rule: searching for a string that
   # exists only in gitignored deps/ returned 0 through the wrapper and 20
   # through `command grep`, while a tracked string returned 2 from both.
   #
@@ -19,10 +20,17 @@ defmodule Commonplace.LogReducer.DependencyTest do
   #
   # Two traps in TESTING for this, both of which produce a false all-clear:
   #
-  #   1. Naming the ignored directory as the search root defeats the pruning
-  #      entirely -- only a traversal that DESCENDS into it from a parent
-  #      triggers it. Pointing grep straight at deps/ and seeing the arms agree
-  #      tests the case that cannot fail. Recurse from the repo root.
+  #   1. The pruning applies the .gitignore rules found AT OR BELOW the search
+  #      root; a rule living ABOVE the search root is invisible to it. Verified
+  #      here with a planted ASCII file (so binary-skip cannot confound it):
+  #
+  #        rule above, root = the ignored dir   wrapper 1 == command 1  NOT pruned
+  #        rule above, root = repo root         wrapper 0 vs command 1  PRUNED
+  #        rule INSIDE the search root          wrapper 0 vs command 1  PRUNED
+  #
+  #      So pointing grep straight at deps/ can be the case that cannot fail --
+  #      but only because deps/ is owned by a rule above it. Recurse from the
+  #      repo root, or check whether a local .gitignore sits at your root.
   #
   #   2. A control drawn from INSIDE the suspected boundary inherits the defect
   #      and can never reveal it. If both the probe string and the control
