@@ -86,6 +86,22 @@ or absolute paths to external directories
 absolute path is silently ignored, so this is harmless in Task 1 before `test_support/`
 exists in Task 9.
 
+**Reproduced end-to-end on Elixir 1.18.4 / OTP 27 before this plan was approved** — a
+two-project scratch repo with `proj_b` path-depping on `proj_a`. Measured, not assumed:
+
+| Probe | Result |
+| --- | --- |
+| Relative `"../test_support"` | **Compile abort**, message as quoted above |
+| Absolute, engine project | Passes; shared module compiles in |
+| Absolute, plugin project via path dep | Passes; `Shared.JCS` reachable |
+| Dep's own `test/support` from the plugin project | **Not** reachable — D3's intent holds exactly |
+
+That last row is the one that matters: it confirms the split is real rather than
+incidental. Engine-only fixtures stay invisible to the plugin project, while genuinely
+shared test code is visible to both — which is the whole reason for the repo-root
+directory. The third row also re-confirms the original bug: as a dependency, `proj_a`
+compiled `lib` only.
+
 One copy, no duplication, no dependency-env trickery, and it ships in neither package
 because it is absent from the non-test path. Repo-root `test_support/` holds only what
 both need — `jcs.ex` and the vector-walking helper. Engine-only fixtures (the fixture
