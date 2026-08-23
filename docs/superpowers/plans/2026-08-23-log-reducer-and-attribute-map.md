@@ -128,6 +128,19 @@ the rebuilt `Projection` struct must **carry the old set forward** and add the n
 Dropping it is the single easiest way to silently pass task 7 and fail conformance
 case 9. There is a dedicated test for this.
 
+**D6 — The 15 error codes are a closed set here, though §21 says "at least".**
+Found while implementing Task 2: §21's preamble is *"Version 1 defines at least:"*, so
+the spec states a floor, not a closed set. Our `Error.new/2` still rejects any code
+outside the 15, and the test asserts `length(codes()) == 15`.
+
+That is deliberately stricter than the spec. An engine that accepts an undeclared code
+would let a typo (`:stale_epock`) travel as far as a caller's `case` statement before
+anyone noticed, and error codes are the one surface where silent acceptance is worst —
+they are what callers branch on. The cost is that a future spec revision adding a
+sixteenth code fails that assertion **by design**, which is the correct kind of failure:
+loud, at the declaration, with an obvious fix. Widen the set deliberately; never relax
+the closure.
+
 ---
 
 ## Gate discipline (applies to every gate this plan lands)
