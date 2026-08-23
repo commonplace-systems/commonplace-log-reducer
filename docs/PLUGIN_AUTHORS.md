@@ -313,6 +313,36 @@ The advice is still validate-everything-then-apply-everything — it is clearer 
 generalizes to plugins holding mutable resources. Only the stated failure mode was
 wrong.
 
+⭐ **Two traps found by the second plugin author, both failures of *reasoning coverage*
+rather than of code. Neither is caught by any tool.**
+
+**1. Rejection tests written before the happy path exists are vacuous by construction.**
+A stub returning `{:error, :not_implemented}` satisfies every one of them — missing
+field, extra field, malformed payload, all of it. **They look exactly like passing
+tests**, and six of that author's eight passed on first run against a stub that did
+nothing. TDD actively encourages writing them first, which is what makes this one bite.
+
+⇒ A rejection test only becomes meaningful once the happy path returns `{:ok, _}`.
+Either write the happy path first, or re-run every rejection test *after* it lands and
+confirm they still pass for the right reason.
+
+**2. A fix applied to one serialisation path is a hypothesis about all of them.**
+That author fixed a duplicate-detection gate that did not survive `checkpoint`/`restore`
+— `seen_ids` rebuilt empty, so the gate was strictly *weaker after* a checkpoint than
+before one. Then the identical defect turned out to exist on the **epoch-base** path,
+found only later and for an unrelated reason.
+
+⇒ The question that found it both times is **"what does the serialised form DROP?"** —
+not what it carries. Ask it of every path that reconstructs your state: `restore/2`,
+`init/2` from a base, and any future one. §9.1 explicitly permits an application to
+"calculate a new base from previous state", which is exactly where identity information
+gets quietly lost.
+
+⭐ Their fix is the shape to copy: **one shape and one validator shared by base and
+checkpoint.** They differ in provenance — durable log content versus derived data with no
+authority — but not in content, and a single validator makes it structurally impossible
+for the gate to be weaker on one path than the other.
+
 ⭐ **The `created_at` case is the one nobody writes — but you cannot write it alone.**
 A plugin never sees `created_at`; the engine strips it and never passes it on. So the
 engine owns the end-to-end version (re-run a history with timestamps shuffled; assert

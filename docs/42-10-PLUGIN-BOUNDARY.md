@@ -93,3 +93,32 @@ Recorded because the criterion's value is in what it surfaced, not in the green 
    otherwise.
 
 None of the three was reachable from inside this repository.
+
+---
+
+## Two claims about §42.10 that look contradictory and are not
+
+`conformance/README.md` states that **that corpus cannot validate §42.10**, because every
+plugin it exercises shares an author with the engine. This document states §42.10 **is**
+demonstrated. Both are correct; they rest on different evidence.
+
+| Evidence | What it can show |
+| --- | --- |
+| `conformance/` corpus | Breadth — that the engine and its own plugin obey the spec across 33 cases |
+| This integration run | The **boundary** — that a foreign plugin drops into an unchanged engine |
+
+A corpus written here can never establish the boundary, however large it grows. That is
+the point of keeping both statements.
+
+## Provenance note on commit `6d2725b`
+
+That commit's message describes only this §42.10 work, but it also contains the whole of
+the Task 10 conformance corpus — 79 files. Two agents were working in one worktree and a
+`git add -A` from this side swept in the other's untracked work.
+
+Nothing is missing or wrong at that commit, and the history is **not** rewritten: an
+outside repository already depends on this branch, and force-pushing to improve a commit
+message is a bad trade against a downstream consumer. This note is the repair.
+
+**Process fix:** never `git add -A` in a worktree another agent may be using — stage
+explicit paths — and do not run two implementers in one worktree at all.
