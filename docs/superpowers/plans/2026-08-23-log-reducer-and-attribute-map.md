@@ -148,6 +148,24 @@ dangerous, and the symmetry of "false red vs false green" hides it:
 A gate never seen red produces greens forever and each one reads as evidence. That is
 why the red arm is the non-negotiable one.
 
+**Every gate here must name what it counts, and that count must be one a healthy
+system cannot produce zero for.** This is argued per gate, not inferred from the shape
+of the number — a population count can still have a legitimate zero if it is secretly a
+*sub*population. Checked for the five:
+
+| Gate | Counts | Can a healthy repo produce zero? |
+| --- | --- | --- |
+| Boundary test | engine source files | No — a healthy engine has sources |
+| JCS corpus floor | case directories present | No — a fixed, committed file set |
+| `9xx` controls | required mismatches | No — must mismatch by construction |
+| Conformance harness | vectors compared | No — same fixed set |
+| **Reachability gate** | **§21 codes *emitted*** | **YES — an occurrence count** |
+
+The last row is the exception and is why that gate is guarded to full runs only. A
+filtered run legitimately emits fewer than 15 codes; a vacuity rule that fired there
+would be a false red on correct behaviour, which is how a gate earns being routed
+around — the worst failure in the family arriving *through the fix for false greens*.
+
 **And a gate that fires on *correct* input is worse than no gate** — it trains people
 to route around it, and a routed-around gate protects nothing while still reading as
 installed. The `Code.ensure_loaded?/1` case in Task 1 is exactly that shape: correct
