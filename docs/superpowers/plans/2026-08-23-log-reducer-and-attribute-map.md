@@ -407,10 +407,32 @@ Force **each** of the three tests red in turn — a list of forbidden strings wh
 one entry has ever been observed failing is one proven entry and N assumptions:
 
 1. add `# AttributeMap` as a comment inside `lib/commonplace/log_reducer.ex` → test 1 red;
-2. add `:commonplace_attribute_map` to `mix.exs` deps → test 2 red;
+2. add `:commonplace_attribute_map` to `mix.exs` deps → **see the note below**;
 3. add `DateTime.utc_now()` inside the stub module → test 3 red.
 
 Revert after each and re-run to confirm green returns.
+
+⚠️ **Measured during Task 1: red 2 does not manifest as a test failure, and that is
+worth recording rather than papering over.** A real path dep on the plugin creates a
+cycle that aborts mix *before ExUnit loads*:
+
+```
+** (Mix) Trying to load CommonplaceLogReducer.MixProject from ".../mix.exs" but
+   another project with the same name was already defined at ".../mix.exs"
+```
+
+So **the build graph is the primary enforcement of D1's boundary, and test 2 is a
+secondary tripwire** — it cannot fire in the case it was nominally written for, because
+that case is unreachable. What test 2 actually catches is a plugin name appearing in
+`mix.exs` in some *non-cycle* form: a comment, a string, an `optional:`/`only:` entry,
+or a future dep named without a path. That is a real but narrower job, and the test must
+say so in its own name and a comment. A test whose title claims more than it can prove
+is how the next reader concludes the boundary is test-enforced and then "simplifies" the
+two projects back into one — losing the enforcement while keeping the test that appeared
+to provide it.
+
+Demonstrate test 2's assertion separately by putting the plugin name in `deps` as a
+**comment** (no cycle, assertion reachable). Record both observations.
 
 Paste both outcomes into the commit message. A gate that has never been watched failing
 is not known to work — green and broken share an observable until you force a red.
@@ -877,7 +899,28 @@ end
 ```
 
 A floor derived by counting the directories present is vacuous — it passes for a corpus
-that has silently lost half its cases. The literal is the anti-vacuity floor. If this
+that has silently lost half its cases. The literal is the anti-vacuity floor.
+
+⚠️ **But the count proves DISCOVERY, not READING — and those are different gates.** A
+harness that walks 19 directories and never successfully opens a single `expected.hex`
+passes the count check and reports 18 green ticks. Every one of them is decoration.
+So add the sabotage arm:
+
+- [ ] **Step 2b: Prove the harness actually reads the fixtures**
+
+Corrupt one byte of any `expected.hex` (or rename it) and re-run:
+
+```
+suite goes RED   -> the harness genuinely reads that file; the greens mean something
+suite stays GREEN -> the harness is not reading it, and every tick is decoration
+```
+
+Restore and confirm green. This is the same sabotage as forcing a gate red, aimed at
+the **corpus** rather than the assertion — because the failure mode here is not a wrong
+oracle but a *never-opened* one: a moved fixture, a changed path, a `File.read` whose
+`{:error, :enoent}` got swallowed into a default. Each of those is true-when-written and
+quietly stops being true. A `File.read!` (bang) rather than `File.read` is the cheap
+structural version of the same protection; use it, and still run the sabotage once. If this
 test fails because the upstream corpus legitimately grew, update the literal *and* the
 SELECTOR statement in the same commit; new vectors are announced-safe, but a *shrinking*
 corpus is the thing this catches.
