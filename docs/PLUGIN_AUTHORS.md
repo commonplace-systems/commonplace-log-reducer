@@ -235,6 +235,31 @@ A useful property to hold yourself to: **`checkpoint` then `restore` must produc
 state whose view is identical**, and a checkpoint plus the remaining log suffix must
 equal a full replay.
 
+### Path-dependent internal state is allowed — but read the boundary carefully
+
+Your internal representation may legitimately depend on the *order* in which operations
+arrived, even when the resulting view does not. A CRDT is the standard case: converging
+views, but an item store whose block boundaries differ depending on which edit landed
+first.
+
+⭐ **That is fine here, and the reason is worth understanding rather than trusting.**
+Inside this engine the order is *fixed by the log*. Full replay and checkpoint-plus-suffix
+traverse the same operations in the same sequence, so they reach the same internal state
+and the same bytes. The equivalence this library requires is not "order-independent", it
+is "same order, same result".
+
+⚠️ **Where it bites is outside that boundary**: comparing state built from a different
+linearization of the same history, or across replicas that received operations in
+different orders. If your checkpoint encodes a path-dependent structure directly, two
+histories that are semantically identical can produce different checkpoint bytes.
+
+⇒ **A safe pattern, if your encoding turns out to be path-dependent: checkpoint the
+ordered list of applied operations rather than the derived structure.** Replay from it is
+identical by construction, and canonicalization is sidestepped entirely. It costs size
+and buys byte-identity. Verify which case you are in — do not assume a sorted encode path
+is sufficient, because sorting the output does not remove path-dependence that lives in
+the structure being encoded.
+
 ---
 
 ## 8. A conformance checklist for your plugin
