@@ -1,6 +1,8 @@
 # §42.10 — the plugin boundary, demonstrated
 
-**Status: DEMONSTRATED, 2026-08-23.** Previously recorded as *not demonstrated*.
+**Status: DEMONSTRATED, 2026-08-23. REOPENED AND RE-DEMONSTRATED, 2026-08-24** -- see
+[the reopening](#reopened-2026-08-24-plugin_call4) below. Previously recorded as *not
+demonstrated*.
 
 > §42.10: "commonplace-merkle-crdt can implement the same plugin behavior without
 > changing the core reducer API."
@@ -157,3 +159,60 @@ message is a bad trade against a downstream consumer. This note is the repair.
 
 **Process fix:** never `git add -A` in a worktree another agent may be using — stage
 explicit paths — and do not run two implementers in one worktree at all.
+
+---
+
+## Reopened 2026-08-24: `plugin_call/4`
+
+commonplace-doc needed to reach the merkle plugin's `assemble/2`, which takes the
+plugin's `%State{}` -- a value that lives inside `%Projection{state:}` inside the engine.
+It declined to read `engine.projections["content"].state`, on the rule commonplace-log
+established the same day: **an accessor that returns an internal handle grants every
+operation that handle permits, not just the one the caller wanted. Move the operation
+inside the boundary; never move the handle outside it.**
+
+The engine's public surface was `view/2` and `views/1`. It is now also
+`plugin_call(state, name, fun, args)`: the engine resolves the projection, and calls
+`fun` on the module that owns it with the plugin state first. The state is handed only
+to the module that produced it; the caller sees neither the state nor the module. The
+closure shape (`with_projection(state, name, fn module, plugin_state -> ... end)`) was
+rejected because `fn _, s -> s end` is a closure: it makes leaving the boundary a
+deliberate act rather than an impossible one. The engine's own behaviour callbacks are
+refused (`{:reserved_callback, ...}`): running `apply/3` or `checkpoint/1` against a
+live state out of band is the reach-in by another route.
+
+This changed the engine, so per this document the criterion reopened rather than being
+patched around. Both runs below were made against the engine **with** `plugin_call/4`,
+in a scratch copy of the plugin repository with the engine as a path dependency.
+
+| Run | Plugin commit | Result |
+| --- | --- | --- |
+| `docs/42-10-integration-proof.exs` | `53df66e` (the commit this document pinned) | **byte-identical** to the measured output above |
+| `docs/plugin-call-probe.exs` | `31e6dca` (plugin HEAD, `reducer_version` 3) | below |
+
+The proof script does **not** run against plugin HEAD: the plugin now reports
+`reducer_version` 3 and requires `epoch_id` on every commit, so registration fails with
+`reducer_version_mismatch` -- the plugin's format moving, exactly as the "Versions"
+section predicted, not the engine regressing. The probe script tracks the v3 shape.
+
+```
+view              : %{"graph" => ..., "roots" => %{epoch => %{"t" => %{"kind" => "text", "value" => "helloworld"}}}}
+assemble(i2)      : {:ok, {:ok, %Yelixer.Doc{...}}}
+control i1 != i2  : true
+unknown commit    : {:ok, {:error, {:unknown_commit, "nope"}}}
+apply/3 reserved  : {:error, {:reserved_callback, "content", :apply, 3}}
+checkpoint/1 resv : {:error, {:reserved_callback, "content", :checkpoint, 1}}
+no such fun       : {:error, {:undefined_plugin_function, "content", :assemble, 1}}
+unknown projection: {:error, {:unknown_projection, "nope"}}
+state untouched   : true
+```
+
+What each line establishes: the plugin's own function is reachable with its real state
+(`assemble`); the result depends on the state, so the instrument discriminates (`i1 != i2`);
+the plugin's own errors pass through unwrapped inside `{:ok, _}`; the three engine-side
+refusals fire; and the engine state is unchanged afterwards.
+
+**What this does not change:** the plugin was written without `plugin_call/4` existing and
+needed no change to be reached through it -- the behaviour module is untouched. The
+independence caveats above still hold, and now there is one more: the author of this door
+is the engine's author, and its first consumer had not yet used it when this was written.

@@ -65,6 +65,13 @@ defmodule FixturePlugin.Counter do
   @impl true
   def view(state) when is_integer(state), do: {:ok, state}
 
+  @doc """
+  A plugin-defined operation over the state that is *not* an engine callback:
+  what `Commonplace.LogReducer.plugin_call/4` exists to reach. Returns the
+  count plus `n`, never the state itself.
+  """
+  def plus(state, n) when is_integer(state) and is_integer(n), do: {:ok, state + n}
+
   @impl true
   def checkpoint(state) when is_integer(state), do: {:ok, %{"count" => state}}
 

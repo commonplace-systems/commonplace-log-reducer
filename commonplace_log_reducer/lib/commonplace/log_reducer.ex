@@ -138,6 +138,80 @@ defmodule Commonplace.LogReducer do
     end)
   end
 
+  @doc """
+  Applies one of the plugin's own functions to one projection's state, inside
+  the boundary, and returns whatever the plugin returned.
+
+  `plugin_call(state, name, fun, args)` resolves the projection named `name`,
+  and calls `fun` on the module that owns it with the plugin state as the first
+  argument followed by `args`. The plugin state is handed only to the module
+  that produced it; it never reaches the caller, and neither does the module.
+
+  ## Why this exists, and why it is not an accessor
+
+  A plugin's state is opaque to this engine and *should* be opaque to the
+  host. But the plugin may define operations over its state beyond `view/1` --
+  a merkle CRDT assembling one document by id, say -- and the host needs to
+  reach them. An accessor returning the state would grant every operation the
+  state permits, not the one the host wanted; so would a closure taking the
+  state, since `fn _, s -> s end` is a closure. Moving the operation inside the
+  boundary is the alternative: the host names the function, the engine does
+  the calling.
+
+  The engine's own callbacks (`Commonplace.LogReducer.Plugin`) are refused
+  with `{:reserved_callback, name, fun, arity}`. They are the engine's to call,
+  in order, with a section 13 context: running `apply/3` or `checkpoint/1`
+  against a live state out of band is exactly the reach-in this function
+  exists to prevent, whatever the return value.
+
+  ## Errors
+
+  Like `view/2`, none of these are section 21 codes; nothing here reduces an
+  entry or moves a head.
+
+    * `{:error, {:unknown_projection, name}}` -- as `view/2`;
+    * `{:error, {:undefined_plugin_function, name, fun, arity}}` -- the
+      plugin module exports no such `fun/arity`, where `arity` counts the
+      state argument;
+    * `{:error, {:reserved_callback, name, fun, arity}}` -- see above.
+
+  The plugin's return value is wrapped as `{:ok, result}` verbatim, including
+  a `{:error, _}` the plugin itself returned: the engine is not in a position
+  to interpret it. Exceptions the plugin raises propagate, as they do from
+  `view/2`.
+  """
+  @spec plugin_call(State.t(), String.t(), atom(), [term()]) :: {:ok, term()} | {:error, term()}
+  def plugin_call(%State{} = state, name, fun, args) when is_atom(fun) and is_list(args) do
+    arity = length(args) + 1
+
+    with {:ok, %Projection{module: module} = projection} <- fetch_projection(state, name),
+         :ok <- not_reserved(name, fun, arity),
+         :ok <- exported(module, name, fun, arity) do
+      {:ok, Kernel.apply(module, fun, [projection.state | args])}
+    end
+  end
+
+  defp fetch_projection(%State{projections: projections}, name) do
+    case Map.fetch(projections, name) do
+      {:ok, projection} -> {:ok, projection}
+      :error -> {:error, {:unknown_projection, name}}
+    end
+  end
+
+  defp not_reserved(name, fun, arity) do
+    if {fun, arity} in Registry.required_callbacks(),
+      do: {:error, {:reserved_callback, name, fun, arity}},
+      else: :ok
+  end
+
+  defp exported(module, name, fun, arity) do
+    Code.ensure_loaded(module)
+
+    if function_exported?(module, fun, arity),
+      do: :ok,
+      else: {:error, {:undefined_plugin_function, name, fun, arity}}
+  end
+
   defp render(%State{} = state, name, %Projection{} = projection) do
     case projection.module.view(projection.state) do
       {:ok, value} ->
