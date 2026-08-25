@@ -3,7 +3,7 @@
   "registry": [
     {
       "id": "fixture.counter",
-      "version": 1,
+      "version": 2,
       "plugin": "counter"
     }
   ],
@@ -34,7 +34,7 @@
     },
     {
       "log_id": "0198d83c-eaf8-7c5d-b1e3-4387f1d8d9b8",
-      "version": 2,
+      "version": 1,
       "entry_id": "0198e000-0000-7000-8000-000000000002",
       "writer_id": "0198d83d-54de-7c06-b574-ea1fb40d3a86",
       "writer_seq": 2,

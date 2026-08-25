@@ -189,11 +189,15 @@ corpus's 17 run to `018`.
 
 The engine corpus carries one pair beyond §38: `018`/`019`, "operation_id alone
 changes nothing". commonplace-log entry version 2 (its Amendment 2, 2026-08-25)
-persists a durable `operation_id` as a top-level **entry** field. The engine
-reads only its six §6 required keys, so a version-2 entry, with or without
-that field and whatever its value, reduces byte-identically to case `016`.
-The pair is the tripwire a second implementer meets: it must accept entry
-version 2 and must not let `operation_id` reach a plugin or a checkpoint.
+persists a durable `operation_id` as a top-level **entry** field, **required**
+in version 2 (jes, 2026-08-25T19:48Z). The engine reads only its six §6
+required keys, so a version-2 entry reduces byte-identically to case `016`
+whatever the field's value. Side `a` is all version 2; side `b` is a **mixed
+lane** — version-2 entries beside one version-1 entry with no `operation_id` —
+which is the honest "absent" case, since absent-in-v2 is malformed at the
+log's gate and not a shape this corpus may call valid. The pair is the tripwire
+a second implementer meets: it must accept entry versions 1 and 2 in one lane
+and must not let `operation_id` reach a plugin or a checkpoint.
 
 ---
 

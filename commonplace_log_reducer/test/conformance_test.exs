@@ -227,20 +227,34 @@ defmodule ConformanceTest do
            "positive control: the pair must actually differ in operation_id, or this " <>
              "test proves nothing"
 
-    assert Enum.all?(input_a["entries"] ++ input_b["entries"], &(&1["version"] == 2)),
-           "both inputs must be entry version 2, or the version is not exercised"
+    assert Enum.all?(input_a["entries"], &(&1["version"] == 2 and is_binary(&1["operation_id"]))),
+           "side a must be all entry version 2, each carrying operation_id (required in v2)"
 
-    assert nil in ids_b and Enum.all?(ids_a, &is_binary/1),
-           "one side must omit the field somewhere: absent and present must agree"
+    # Side b is a MIXED lane: version-2 entries beside one version-1 entry that
+    # has no operation_id. That is the honest "absent" case -- in v2 the field
+    # is required (jes, 2026-08-25T19:48Z), so absent-in-v2 is malformed at
+    # the log's gate, not a shape this corpus may call valid.
+    versions_b = Enum.map(input_b["entries"], & &1["version"])
+
+    assert 1 in versions_b and 2 in versions_b,
+           "side b must mix entry versions 1 and 2, or absent-vs-present is not exercised"
+
+    assert Enum.all?(input_b["entries"], fn e ->
+             case e["version"] do
+               2 -> is_binary(e["operation_id"])
+               1 -> not Map.has_key?(e, "operation_id")
+             end
+           end),
+           "side b: every v2 entry carries operation_id and every v1 entry lacks it"
 
     strip = fn input ->
       update_in(input["entries"], fn entries ->
-        Enum.map(entries, &Map.delete(&1, "operation_id"))
+        Enum.map(entries, &Map.drop(&1, ["operation_id", "version"]))
       end)
     end
 
     assert Conformance.canonical(strip.(input_a)) == Conformance.canonical(strip.(input_b)),
-           "the pair must be identical apart from operation_id"
+           "the pair must be identical apart from operation_id and entry version"
 
     assert Conformance.canonical(expected_a) == Conformance.canonical(expected_b),
            "the pair must state the same expectation"
