@@ -10,9 +10,9 @@ Realm placement, or replica synchronization.
 
 ## Status
 
-**Measured at `763b8df` (main, 2026-08-25): the engine and the attribute-map plugin are
-merged and on `main` — `commonplace_log_reducer` 220 tests + 11 properties, `commonplace_attribute_map`
-99 tests + 13 properties, 0 failures; conformance corpora 19 canonical-JSON + 18 reducer-engine
+**Measured at `2939e52` (main, 2026-08-25): the engine and the attribute-map plugin are
+merged and on `main` — `commonplace_log_reducer` 226 tests + 11 properties, `commonplace_attribute_map`
+99 tests + 13 properties, 0 failures; conformance corpora 19 canonical-JSON + 20 reducer-engine
 + 19 attribute-map case directories; `./conformance/check.sh` exits 0; all fifteen §21 codes
 reachable by an assertion; all ten §42 criteria mapped to a runnable artifact, §42.10
 demonstrated against a foreign plugin (`docs/42-10-PLUGIN-BOUNDARY.md`).**
