@@ -3,7 +3,7 @@
   "registry": [
     {
       "id": "fixture.counter",
-      "version": 2,
+      "version": 1,
       "plugin": "counter"
     }
   ],
