@@ -40,6 +40,12 @@ supplied immutable resources. No clock, no randomness, no I/O, no ambient author
   makes §42.10 meaningful.
 - **Multi-writer logs.** A second writer id is `multiwriter_document_unsupported`. This is
   a stated limit of version 1, not an oversight (§40).
+- **That a lane begins with a version epoch.** A writer lane is *expected* to begin with
+  an epoch for the `"version"` projection (a once-set format stamp, ruled 2026-08-25).
+  **The engine does not enforce this.** Entry 1 is reduced like any other entry; a lane
+  whose first entry is something else is accepted. The convention is enforced by
+  commonplace-doc's open path and nowhere in the format. **A consumer that requires it
+  must check for it itself.**
 
 ## Running the tests
 

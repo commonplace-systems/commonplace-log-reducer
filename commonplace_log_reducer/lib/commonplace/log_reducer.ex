@@ -18,6 +18,17 @@ defmodule Commonplace.LogReducer do
   (`checkpoint/1`, `restore/3`) are a derived, disposable accelerator for
   rebuilding state without replaying a whole log.
 
+  ## The engine does not enforce a genesis entry
+
+  A writer lane is *expected* to begin with an epoch for the `"version"`
+  projection: a once-set format stamp, advanced only by an explicit migration
+  epoch. **This engine does not check that.** Entry 1 is classified and reduced
+  exactly like every later entry, and a lane whose first entry is an unrelated
+  body, or an epoch for some other projection, reduces without complaint. The
+  convention lives in one consumer's open path (commonplace-doc), not in the
+  format. A host that requires it must check `view/2` for `"version"` itself.
+  Ruled 2026-08-25, with this non-guarantee stated as the accepted cost.
+
   ## Raw replica synchronization is not semantic Document synchronization
   (section 40)
 
