@@ -22,7 +22,7 @@ cd "$root"
 
 # Measured once, then written down. A floor derived by counting what the run
 # reported would pass against a suite that ran nothing.
-ENGINE_CONFORMANCE_TESTS=22
+ENGINE_CONFORMANCE_TESTS=25
 ATTRIBUTE_MAP_CONFORMANCE_TESTS=23
 CORPUS_FILES=112
 

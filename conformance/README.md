@@ -187,6 +187,14 @@ pairs) occupies two consecutive numbers with `-a` and `-b` suffixes. That is why
 the engine corpus's 16 required cases run to `017` and the attribute-map
 corpus's 17 run to `018`.
 
+The engine corpus carries one pair beyond §38: `018`/`019`, "operation_id alone
+changes nothing". commonplace-log entry version 2 (its Amendment 2, 2026-08-25)
+persists a durable `operation_id` as a top-level **entry** field. The engine
+reads only its six §6 required keys, so a version-2 entry, with or without
+that field and whatever its value, reduces byte-identically to case `016`.
+The pair is the tripwire a second implementer meets: it must accept entry
+version 2 and must not let `operation_id` reach a plugin or a checkpoint.
+
 ---
 
 ## Two doors

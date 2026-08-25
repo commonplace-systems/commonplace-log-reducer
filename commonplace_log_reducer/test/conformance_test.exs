@@ -41,8 +41,8 @@ defmodule ConformanceTest do
   @corpus Path.expand("../../conformance/reducer-engine", __DIR__)
 
   # Measured against conformance/reducer-engine, then stated as literals.
-  @discovered 18
-  @must_match 17
+  @discovered 20
+  @must_match 19
   @must_mismatch 1
 
   # The 16 section 38 engine cases occupy 001..017: case 16 ("changing
@@ -50,6 +50,12 @@ defmodule ConformanceTest do
   # so it needs two directories.
   @created_at_pair {"016-created-at-alone-changes-nothing-a",
                     "017-created-at-alone-changes-nothing-b"}
+
+  # Beyond section 38: commonplace-log entry version 2 persists a durable
+  # `operation_id` as a top-level ENTRY field. The engine reads only its six
+  # required keys, so the field must change nothing. A pair, like case 16.
+  @operation_id_pair {"018-operation-id-alone-changes-nothing-a",
+                      "019-operation-id-alone-changes-nothing-b"}
 
   # Corpus fixture keys -> modules. The corpus never names an Elixir module
   # (section 11); this table is the only place the mapping exists, and it is
@@ -89,6 +95,11 @@ defmodule ConformanceTest do
 
     assert pair_a in names and pair_b in names,
            "DOOR 1: the created_at pair is incomplete: #{inspect(@created_at_pair)}"
+
+    {op_a, op_b} = @operation_id_pair
+
+    assert op_a in names and op_b in names,
+           "DOOR 1: the operation_id pair is incomplete: #{inspect(@operation_id_pair)}"
   end
 
   test "every case directory carries both files" do
@@ -202,5 +213,45 @@ defmodule ConformanceTest do
 
     assert Conformance.canonical(actual_a) == Conformance.canonical(actual_b),
            "created_at is advisory (sections 6, 20) and must not reach any result"
+  end
+
+  test "operation_id alone changes nothing (entry version 2)" do
+    {name_a, name_b} = @operation_id_pair
+    {input_a, expected_a} = Conformance.read_case(Path.join(@corpus, name_a))
+    {input_b, expected_b} = Conformance.read_case(Path.join(@corpus, name_b))
+
+    ids_a = Enum.map(input_a["entries"], & &1["operation_id"])
+    ids_b = Enum.map(input_b["entries"], & &1["operation_id"])
+
+    refute ids_a == ids_b,
+           "positive control: the pair must actually differ in operation_id, or this " <>
+             "test proves nothing"
+
+    assert Enum.all?(input_a["entries"] ++ input_b["entries"], &(&1["version"] == 2)),
+           "both inputs must be entry version 2, or the version is not exercised"
+
+    assert nil in ids_b and Enum.all?(ids_a, &is_binary/1),
+           "one side must omit the field somewhere: absent and present must agree"
+
+    strip = fn input ->
+      update_in(input["entries"], fn entries ->
+        Enum.map(entries, &Map.delete(&1, "operation_id"))
+      end)
+    end
+
+    assert Conformance.canonical(strip.(input_a)) == Conformance.canonical(strip.(input_b)),
+           "the pair must be identical apart from operation_id"
+
+    assert Conformance.canonical(expected_a) == Conformance.canonical(expected_b),
+           "the pair must state the same expectation"
+
+    actual_a = Conformance.actual(expected_a, Conformance.run(input_a, @plugins))
+    actual_b = Conformance.actual(expected_b, Conformance.run(input_b, @plugins))
+
+    assert Conformance.canonical(actual_a) == Conformance.canonical(actual_b),
+           "operation_id is the host's (commonplace-log Amendment 2) and must not reach any result"
+
+    refute inspect(actual_a) =~ "operation_id",
+           "operation_id leaked into a view or checkpoint"
   end
 end

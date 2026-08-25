@@ -112,6 +112,7 @@ where the mechanism lives. That the pairing works with two real plugins is infer
 | Evidence | Where |
 | --- | --- |
 | Two logs differing only in `created_at` reduce to the same view — engine | `conformance/reducer-engine/016-created-at-alone-changes-nothing-a/` and `.../017-created-at-alone-changes-nothing-b/`, compared by `commonplace_log_reducer/test/conformance_test.exs` — *"changing created_at alone changes nothing (section 38 case 16)"* |
+| Two logs differing only in entry-v2 `operation_id` reduce to the same view — engine | `conformance/reducer-engine/018-operation-id-alone-changes-nothing-a/` and `.../019-operation-id-alone-changes-nothing-b/`, compared by `commonplace_log_reducer/test/conformance_test.exs` — *"operation_id alone changes nothing (entry version 2)"* |
 | Same pair — attribute map | `conformance/attribute-map/017-timestamps-do-not-change-the-view-a/` and `.../018-...-b/`, compared by `commonplace_attribute_map/test/conformance_test.exs` — *"identical entry order with different timestamps yields the same view"* |
 | Shuffling `created_at` changes neither view nor checkpoint | `commonplace_attribute_map/test/properties_test.exs` — describe *"created_at is not load-bearing"*, both properties (the second covers failure coordinates too) |
 | Same, engine level, including the checkpoint bytes | `commonplace_log_reducer/test/checkpoint_test.exs` — *"created_at does not affect the checkpoint"*; `commonplace_log_reducer/test/properties_test.exs` — describe *"created_at is not load-bearing"* |
