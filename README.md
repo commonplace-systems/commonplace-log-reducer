@@ -8,31 +8,17 @@ This library consumes validated entries from commonplace-log; it does not own lo
 persistence, BEAM process lifecycle, Document messaging, Cell authority, capabilities,
 Realm placement, or replica synchronization.
 
-## Where the code is
-
-⚠️ **`main` is documentation only. The implementation lives on branch `sol/impl`**
-(worktree `.worktrees/impl`) and is merged back when the plan completes. Checking `main`
-alone gives the false impression that nothing is built.
-
-As of 2026-08-23 that branch has the engine through the §16 processing algorithm —
-error codes, envelope validation, registry, plugin behaviour, chain validation, and
-epoch/operation routing — at 133 passing tests.
-
 ## Status
 
-**The implementation lives on the `sol/impl` branch. `main` is still docs-only — no merge
-has happened.** Read this file from the branch you are on: on `main`, the packages below
-describe work that is complete on `sol/impl` and not yet merged.
+**Measured at `763b8df` (main, 2026-08-25): the engine and the attribute-map plugin are
+merged and on `main` — `commonplace_log_reducer` 220 tests + 11 properties, `commonplace_attribute_map`
+99 tests + 13 properties, 0 failures; conformance corpora 19 canonical-JSON + 18 reducer-engine
++ 19 attribute-map case directories; `./conformance/check.sh` exits 0; all fifteen §21 codes
+reachable by an assertion; all ten §42 criteria mapped to a runnable artifact, §42.10
+demonstrated against a foreign plugin (`docs/42-10-PLUGIN-BOUNDARY.md`).**
 
-On `sol/impl`, as of 2026-08-23:
-
-| | |
-| --- | --- |
-| `commonplace_log_reducer` | 214 tests, 11 properties, 0 failures |
-| `commonplace_attribute_map` | 99 tests, 13 properties, 0 failures |
-| Conformance corpora | 19 canonical-JSON + 18 reducer-engine + 19 attribute-map case directories |
-| §21 error codes proven reachable by an assertion | **15 of 15** |
-| §42 acceptance criteria | all ten mapped to a runnable artifact — see below |
+This line is rewritten at every landing with the sha it was measured at, never appended
+below. If it names a sha older than `git log -1`, it is stale and the git log wins.
 
 ```
 ./conformance/check.sh          # both suites, both corpora, the byte rules, exit 0
