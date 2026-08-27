@@ -19,31 +19,39 @@ Last measured 2026-08-27.
 | # | Gate | Where | Red arm seen | Green arm seen | Against |
 | --- | --- | --- | --- | --- | --- |
 | — | byte rules (BOM, CRLF, UTF-8, trailing LF) | `conformance/check.sh` | ✅ stripped a trailing LF → `no trailing LF`, rc 1, 7 s, **0 suites** | ✅ every clean run | real script |
-| — | floor ordering (DOOR 5 floor > §21 floor) | `conformance/check.sh` | ✅ floor 150 → refused, rc 1, 13 s, 0 suites · ✅ unreadable floor → refused, rc 1, 10 s, 0 suites | ⚠️ **copy only** | red: real script · green: extracted copy |
+| — | floor ordering (DOOR 5 floor > §21 floor) | `conformance/check.sh` | ✅ floor 150 → refused, rc 1, 13 s, 0 suites · ✅ unreadable floor → refused, rc 1, 10 s, 0 suites | ✅ **closed 19:03Z**: `OK: DOOR 5 floor 220 > §21 reachability floor 200`, then the script COMPLETED, rc 0 | real script, both arms |
 | 1 | corpus floor (a case went missing) | `test/conformance_test.exs` | ✅ removed one pair directory → 2 failures naming DOOR 1 | ✅ every clean run | real suite |
 | 2 | case comparison (an expectation is wrong) | `test/conformance_test.exs` | ✅ **all 27 cases swept individually**, each mutated → that case red; pair cases named, not counted | ✅ every clean run | real suite |
 | 2b | `9xx` deliberate-mismatch control | `conformance/reducer-engine/999-*` | ✅ it *is* the control — a green here means the comparison broke | ✅ every clean run | real suite |
 | 3 | arms did not execute (`excluded`/`skipped`/`invalid`) | `conformance/check.sh` | ✅ `run_full`: 4 excluded → refused · ✅ `run_conformance`: 25 excluded → refused | ✅ every clean run | real script |
 | 4 | gated-arms inventory changed | `conformance/check-gated-arms.sh` | ✅ tracked env-gated module → rc 65 · ✅ **planted in a subdirectory** (doc's precondition) · ✅ untracked file → rc 70, distinct code | ✅ every clean run | real script |
 | 5 | the suite itself shrank | `conformance/check.sh` | ✅ floor 999 vs 226 → refused naming DOOR 5 | ✅ 226 ≥ 220, 99 ≥ 95 | real script |
-| — | §21 code reachability, **FAILED** branch | `test/test_helper.exs` | ⛔ **NEVER SEEN** | ✅ prints OK on every full run | — |
+| — | §21 code reachability, **FAILED** branch | `test/test_helper.exs` | ✅ **closed 19:03Z**: withheld one code from `Emitted.record/1` → `FAILED: 1 declared §21 code(s) were never emitted … * missing_resource`, rc 1 | ✅ prints OK on every full run | real suite |
 | — | §21 reachability, quiet-below-floor branch | `test/test_helper.exs` | ✅ 54 excluded → `183 of 237 executed, under the 200-test floor` | ✅ every full run | real suite |
 
-## The two open entries, stated rather than implied
+## Both entries closed 2026-08-27 19:03Z — and how the obvious induction would have lied
 
-**⚠️ Floor-ordering green arm — proven against an extracted copy only.** The red and
-unreadable arms go through `check.sh` itself; the green one was exercised by `awk`-ing the
-function out and sourcing it. That proves the copy. Closing it needs one full `check.sh`
-run, which is a queue slot.
+Every arm in the table above has now been seen red **and** green against the real object.
 
-**⛔ §21 reachability FAILED branch — never seen red.** Nothing has ever demonstrated that
-this gate can report a missing code. It has printed OK on every full run since it was
-written, which certifies only the success path. Closing it: add a code to
-`Commonplace.LogReducer.Error.codes/0` that no test emits, run the engine suite, and
-confirm it names that code and sets a non-zero exit. One suite run.
+**⚠️ The obvious way to induce the §21 FAILED branch produces a red that is not the gate.**
+The natural move is to add a code to `Commonplace.LogReducer.Error.codes/0` that no test
+emits. But `test/error_test.exs` asserts `length(Error.codes()) == 15` and compares the
+list, so a planted code reddens *that* test — and this gate **skips when the suite is
+red**, by design, so it would have gone quiet while a collateral failure supplied the
+non-zero exit. ⇒ "It refused" would have been true and about the wrong subject.
 
-Neither will be closed by manufacturing the condition and calling it evidence, and neither
-is counted as working in the meantime.
+The induction that works withholds one code from `Emitted.record/1`, which feeds the
+gate's table and which nothing else asserts on. The suite stays green — `226 tests, 0
+failures` — so the failure can only be the gate:
+
+```
+[§21 reachability] FAILED: 1 declared §21 code(s) were never emitted by any assertion in this run:
+  * missing_resource
+```
+
+**That distinction is the arm.** A demonstration that leaves the suite red cannot tell you
+whether this branch works, because the branch's first action on a red suite is to decline
+to run.
 
 ## Why several arms cost nothing
 
