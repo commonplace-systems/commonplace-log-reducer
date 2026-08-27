@@ -1,0 +1,15 @@
+# Test modules and tests that do NOT run under a plain `mix test`.
+#
+# THE SET IS EMPTY, AND THAT IS THE POINT. This repository has no env-gated
+# test module, no @moduletag and no @tag: measured 2026-08-27, with a positive
+# control (the same pattern matches a synthetic `if System.get_env("X") do`,
+# and the corpus holds 19 files carrying a column-0 module -- 26 such lines --
+# so the zero is an absence and not a blind instrument).
+#
+# Pinning the empty set converts "I checked once" into "it stays checked":
+# adding a gated arm fails `conformance/check-gated-arms.sh` until someone
+# records it HERE, with how it is run. It never claims a gated arm executed --
+# only that nobody added one quietly.
+#
+# Format, one per line, exactly as the script prints it:
+#   <kind>  <path>:<line>:<matched text>

@@ -38,6 +38,16 @@
 full_suite_floor = 200
 
 ExUnit.after_suite(fn %{total: total, failures: failures} = results ->
+  # ExUnit's `total` COUNTS EXCLUDED AND SKIPPED TESTS. Measured 2026-08-27:
+  # one excluded arm left `226 tests, 0 failures, 1 excluded` and this gate
+  # certified a full run that had not happened. The floor must be compared
+  # against what actually EXECUTED, which is total minus the two.
+  # ⚠️ ARM NOT YET DEMONSTRATED: this floor has not been seen to DISCRIMINATE.
+  # The 2026-08-27 induced run excluded 4 tests, leaving executed = 222, still
+  # over the floor -- correct behaviour, but not evidence the subtraction
+  # changes an outcome. Induce >26 exclusions and see this branch report
+  # "skipped: N of 226 executed" before relying on it.
+  executed = total - Map.get(results, :excluded, 0) - Map.get(results, :skipped, 0)
   expected = MapSet.new(Commonplace.LogReducer.Error.codes())
   emitted = :emitted_codes |> :ets.tab2list() |> Enum.map(&elem(&1, 0)) |> MapSet.new()
   missing = MapSet.difference(expected, emitted) |> Enum.sort()
@@ -46,9 +56,10 @@ ExUnit.after_suite(fn %{total: total, failures: failures} = results ->
     failures > 0 ->
       IO.puts("\n[§21 reachability] skipped: the suite is red, and that explains itself.")
 
-    total < full_suite_floor ->
+    executed < full_suite_floor ->
       IO.puts(
-        "\n[§21 reachability] skipped: #{total} tests ran, under the #{full_suite_floor}-test " <>
+        "\n[§21 reachability] skipped: #{executed} of #{total} tests executed, under the " <>
+          "#{full_suite_floor}-test " <>
           "floor for a full run. A filtered run legitimately emits fewer than " <>
           "#{MapSet.size(expected)} codes."
       )
