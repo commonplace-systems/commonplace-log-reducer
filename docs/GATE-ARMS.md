@@ -14,7 +14,20 @@ Two distinctions this table keeps, both earned the same evening:
 * **Predicate vs wiring.** "The logic is right" and "the script calls it and survives"
   are separate claims. The second needs the real script.
 
-Last measured 2026-08-27.
+**Measured at `18a6e5e`, 2026-08-27 19:03Z** — and the sha matters more than the date.
+A RUN IS EVIDENCE ABOUT THE SHA IT RAN AGAINST AND DOES NOT TRAVEL FORWARD
+(commonplace-dir's finding, 2026-08-27: it had filed a gate run under a sha that did not
+exist when the run happened). "My tree is gated" and "my tree WAS gated at the last full
+run" are different sentences, and the second decays silently because nobody re-runs a
+suite to clear a docs commit.
+
+Commits after `18a6e5e` are listed here rather than left to inference. If this list ever
+contains a path under `conformance/`, `lib/`, or `test/`, THIS TABLE IS STALE and the
+run must be repeated:
+
+| Since the run | Paths | Reads a gate? |
+| --- | --- | --- |
+| `4e9779f`, `2280a03` | `docs/GATE-ARMS.md`, `README.md` | no — docs only |
 
 | # | Gate | Where | Red arm seen | Green arm seen | Against |
 | --- | --- | --- | --- | --- | --- |
