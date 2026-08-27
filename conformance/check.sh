@@ -95,7 +95,17 @@ run_conformance() {
   printf '%s\n' "$out"
   [ "$status" -eq 0 ] || fail "$project: conformance suite failed"
 
-  summary="$(printf '%s\n' "$out" | grep -E '^[0-9]+ (properties, [0-9]+ )?tests?, [0-9]+ failures?' | tail -1)"
+  # ⚠️ THE PATTERN IS DELIBERATELY LOOSE, AND `tests?`/`failures?` ARE NOT
+  # OPTIONAL NICETIES. `1 test, 1 failure` is the shape a MINIMAL REPRO takes,
+  # so a plural-only pattern is blind exactly on the run you build when
+  # something is wrong. And an anchored OPTIONAL prefix group is engine-
+  # dependent: measured 2026-08-27, `^[0-9]+ (properties, [0-9]+ )?tests?...`
+  # misses "1 property, 1 test, 1 failure" under GNU grep 3.11, and a
+  # flat-alternation variant misses it under ugrep 7.8.4 -- which is what an
+  # interactive shell here resolves `grep` to, while a SCRIPT gets GNU grep.
+  # ⭐ So the source-only checks I verified this parser with were running a
+  # DIFFERENT REGEX ENGINE than this gate does. This form matches under both.
+  summary="$(printf '%s\n' "$out" | grep -E '[0-9]+ tests?, [0-9]+ failures?' | tail -1)"
 
   # DOOR 3: a test that was EXCLUDED still counts in ExUnit's total, so a floor
   # compared against that total goes green while an arm never ran (measured
@@ -150,7 +160,7 @@ run_full() {
   printf '%s\n' "$out"
   [ "$status" -eq 0 ] || fail "$project: full suite failed"
 
-  summary="$(printf '%s\n' "$out" | grep -E '^[0-9]+ (properties, [0-9]+ )?tests?, [0-9]+ failures?' | tail -1)"
+  summary="$(printf '%s\n' "$out" | grep -E '[0-9]+ tests?, [0-9]+ failures?' | tail -1)"
   [ -n "$summary" ] || fail "$project: could not parse the ExUnit summary line of the full run."
 
   # `if`, not `grep -q ... && fail ...`: as the loop's last statement a
