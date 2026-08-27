@@ -53,12 +53,34 @@ fi
 # A grep against a path that does not exist returns no hits and looks exactly
 # like a confirmed absence. Before trusting an empty inventory, prove the
 # corpus is non-empty and the instrument reads it.
+#
+# ⚠️ AND NON-EMPTINESS IS NECESSARY, NOT SUFFICIENT. It answers "did I scan
+# anything", never "did I scan everything" -- commonplace-biscuit's scanner
+# passed its own control while a gated module sat one directory below its
+# glob. So the corpus is enumerated TWICE, INDEPENDENTLY (`find` and
+# `git ls-files`), and a disagreement REFUSES. A single enumeration has
+# nothing to disagree with; two have to agree before either is believed.
+# Residual, stated: this cannot catch both enumerations being wrong the same
+# way. (commonplace-log's shape, 2026-08-27.)
 # ---------------------------------------------------------------------------
 control=0
 for d in "${dirs[@]}"; do
   [ -d "$d" ] || { echo "GATED-ARMS: $d does not exist; refusing to report an absence." >&2; exit 70; }
   control=$((control + $(grep -rl "^defmodule" --include='*.exs' --include='*.ex' "$d" | wc -l)))
 done
+
+by_find="$(for d in "${dirs[@]}"; do
+  find "$d" -type f \( -name '*.exs' -o -name '*.ex' \) -printf '%P\n' | sed "s|^|${d#$root/}/|"
+done | sort)"
+by_git="$(cd "$root" && git ls-files "*/test/*.exs" "*/test/*.ex" 2>/dev/null | sort)"
+
+if [ "$by_find" != "$by_git" ]; then
+  echo "GATED-ARMS: the two enumerations of the corpus DISAGREE, so neither is" >&2
+  echo "believed. An untracked or unlisted test file is exactly the file a scanner" >&2
+  echo "would miss while reporting a clean empty inventory." >&2
+  diff <(printf '%s\n' "$by_git") <(printf '%s\n' "$by_find") >&2 || true
+  exit 70
+fi
 
 if [ "$control" -eq 0 ]; then
   echo "GATED-ARMS: positive control found no test module at all. The instrument is" >&2
