@@ -39,6 +39,43 @@ cd "$root"
 ENGINE_FULL_SUITE_MIN=220
 ATTRIBUTE_MAP_FULL_SUITE_MIN=95
 
+# ⭐ THE ORDERING ABOVE IS ASSERTED, NOT ANNOTATED.
+#
+# DOOR 5's floor and the §21 gate's `full_suite_floor` are TWO STATEMENTS OF
+# ONE CRITERION living in two files, and nothing links them: raise the §21
+# floor to 250 without touching this file and the ordering breaks SILENTLY,
+# restoring the quiet-gate hole DOOR 5 exists to close. commonplace-log
+# shipped exactly that defect tonight -- its gate moved and its reachability
+# check stayed behind -- and doc-sync's rule is the fix: KEEP THE TWO
+# STATEMENTS IN ONE EDIT, or link them so an edit cannot separate them.
+# A comment is a remembered rule; this is the artifact that fires.
+#
+# The §21 floor is READ from its source of truth rather than restated here.
+# ⚠️ If it cannot be read the answer is NO NUMBER, not a comfortable default:
+# an unverifiable term must not resolve to the reassuring value (doc-sync).
+assert_floor_ordering() {
+  local helper="$root/commonplace_log_reducer/test/test_helper.exs" reach
+
+  reach="$(sed -n 's/^full_suite_floor = \([0-9]\{1,\}\)$/\1/p' "$helper" | tail -1)"
+
+  case "$reach" in
+    '' | *[!0-9]*)
+      fail "could not read full_suite_floor from $helper. Refusing rather than " \
+        "assuming an ordering: an unverifiable term resolves to no number, not " \
+        "to the comfortable one."
+      ;;
+  esac
+
+  if [ "$ENGINE_FULL_SUITE_MIN" -le "$reach" ]; then
+    fail "DOOR 5 floor ($ENGINE_FULL_SUITE_MIN) is not above the §21 " \
+      "reachability floor ($reach). Below that floor the §21 gate goes QUIET " \
+      "rather than red, so a passing run could contain a gate that never " \
+      "fired. Raise DOOR 5's floor, or lower the §21 floor, in the SAME EDIT."
+  fi
+
+  green "OK: DOOR 5 floor $ENGINE_FULL_SUITE_MIN > §21 reachability floor $reach"
+}
+
 ENGINE_CONFORMANCE_TESTS=25
 ATTRIBUTE_MAP_CONFORMANCE_TESTS=23
 CORPUS_FILES=112
@@ -211,6 +248,16 @@ run_full() {
 # the second, so the population is pinned instead and a CHANGE is refused.
 # Source-only, and both arms were demonstrated 2026-08-27 (empty set -> 0;
 # synthetic env-gated module -> 65 naming it; removed -> 0 again).
+# Cheapest first: a configuration error must not cost four suite runs to find.
+# ARMS: green (220 > 200 -> OK) and refuse-on-unreadable demonstrated in
+# isolation; the WIRING RED demonstrated here (floor 150 -> rc 1 in 13s with
+# ZERO suites started). ⚠️ The WIRING GREEN -- that this script still completes
+# after the assertion passes -- is NOT yet demonstrated end to end; it needs a
+# full run and the box is queued. Reasoned-about and watched-working are not
+# the same object, and a function whose last command returns non-zero aborts
+# the script under `set -e` (measured here 2026-08-27, in this file).
+assert_floor_ordering
+
 "$(dirname "$0")/check-gated-arms.sh" || fail "the set of gated arms changed (DOOR 4)."
 
 run_conformance commonplace_log_reducer "$ENGINE_CONFORMANCE_TESTS"
