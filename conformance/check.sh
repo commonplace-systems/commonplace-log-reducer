@@ -22,6 +22,23 @@ cd "$root"
 
 # Measured once, then written down. A floor derived by counting what the run
 # reported would pass against a suite that ran nothing.
+# DOOR 5: the whole suite's own size floor.
+#
+# Measured 2026-08-27: engine 226 tests + 11 properties, attribute-map 99 + 13.
+# These floors sit BELOW those and ABOVE the §21 reachability gate's own
+# `full_suite_floor` of 200 in commonplace_log_reducer/test/test_helper.exs.
+# That ordering is the point, and it is a structural relationship rather than a
+# coincidence: below 200 the §21 gate GOES QUIET (it cannot distinguish a
+# legitimately filtered run from a shrunken suite, because ExUnit's summary
+# does not say which). A floor here, in the one place that KNOWS it just ran
+# the whole suite, means a passing check.sh can never contain a quiet §21 gate.
+#
+# ⚠️ Deliberately NOT equal to 200. A floor written as the same number as the
+# thing it protects has nothing to disagree with; two constants make a
+# weakening visible in a diff (commonplace-biscuit's two-constants rule).
+ENGINE_FULL_SUITE_MIN=220
+ATTRIBUTE_MAP_FULL_SUITE_MIN=95
+
 ENGINE_CONFORMANCE_TESTS=25
 ATTRIBUTE_MAP_CONFORMANCE_TESTS=23
 CORPUS_FILES=112
@@ -145,7 +162,7 @@ run_conformance() {
 }
 
 run_full() {
-  local project="$1" out status summary kind
+  local project="$1" minimum="$2" out status summary kind count
 
   bold "== $project: full suite =="
 
@@ -172,6 +189,21 @@ run_full() {
       fail "$project: full run reports '$summary' -- arms did not execute (DOOR 3)."
     fi
   done
+
+  # DOOR 5: the suite itself must not have shrunk. Nothing else here notices:
+  # DOOR 3 refuses arms that were EXCLUDED, and a deleted test is not excluded,
+  # it is gone. The §21 gate would go quiet rather than red.
+  count="$(printf '%s\n' "$summary" | sed -n 's/.*[^0-9]\([0-9]\{1,\}\) tests\?,.*/\1/p')"
+  [ -n "$count" ] || count="$(printf '%s\n' "$summary" | sed -n 's/^\([0-9]\{1,\}\) tests\?,.*/\1/p')"
+  [ -n "$count" ] || fail "$project: could not read the full-run test count from: $summary"
+
+  if [ "$count" -lt "$minimum" ]; then
+    fail "$project: full suite ran $count tests, under the $minimum floor. " \
+      "This is DOOR 5 (the SUITE shrank), not door 1 (the corpus shrank) or " \
+      "door 3 (arms were excluded). Summary: $summary"
+  fi
+
+  green "OK: $project full suite ran $count tests (floor $minimum)"
 }
 
 # DOOR 4: the arms that do not run under a plain `mix test` at all. An excluded
@@ -184,8 +216,8 @@ run_full() {
 run_conformance commonplace_log_reducer "$ENGINE_CONFORMANCE_TESTS"
 run_conformance commonplace_attribute_map "$ATTRIBUTE_MAP_CONFORMANCE_TESTS"
 
-run_full commonplace_log_reducer
-run_full commonplace_attribute_map
+run_full commonplace_log_reducer "$ENGINE_FULL_SUITE_MIN"
+run_full commonplace_attribute_map "$ATTRIBUTE_MAP_FULL_SUITE_MIN"
 
 # ---------------------------------------------------------------------------
 # 3. Selector
