@@ -10,15 +10,20 @@ Realm placement, or replica synchronization.
 
 ## Status
 
-**Measured at `4e9779f` (main, 2026-08-27): the engine and the attribute-map plugin are
+**Measured at `18a6e5e` (2026-08-27 19:03Z — the sha the RUN was against, not the commit
+that last edited this line): the engine and the attribute-map plugin are
 merged and on `main` — `commonplace_log_reducer` 226 tests + 11 properties, `commonplace_attribute_map`
 99 tests + 13 properties, 0 failures; conformance corpora 19 canonical-JSON + 20 reducer-engine
 + 19 attribute-map case directories; `./conformance/check.sh` exits 0; all fifteen §21 codes
 reachable by an assertion; all ten §42 criteria mapped to a runnable artifact, §42.10
 demonstrated against a foreign plugin (`docs/42-10-PLUGIN-BOUNDARY.md`).**
 
-This line is rewritten at every landing with the sha it was measured at, never appended
-below. If it names a sha older than `git log -1`, it is stale and the git log wins.
+⚠️ **This line names the sha the RUN was measured against — deliberately not `git log -1`.**
+Re-stamping it with each commit's own sha is how a number ends up attributed to a sha it
+is not about: until 2026-08-27 this line carried the sha of the commit that last *edited*
+it, which is a different thing and reads identically. It is stale only when a commit since
+that sha touches something these numbers describe — `conformance/`, `lib/` or `test/`.
+[`docs/GATE-ARMS.md`](docs/GATE-ARMS.md) carries the same convention and lists the delta.
 
 ```
 ./conformance/check.sh          # both suites, both corpora, the byte rules, exit 0
