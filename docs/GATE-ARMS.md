@@ -27,7 +27,29 @@ run must be repeated:
 
 | Since the run | Paths | Reads a gate? |
 | --- | --- | --- |
-| `4e9779f`, `2280a03` | `docs/GATE-ARMS.md`, `README.md` | no — docs only |
+| `4e9779f`, `2280a03`, `20dda5d`, `b6cc604` | `docs/GATE-ARMS.md`, `README.md` | no — docs only |
+| `dc38efc` | `conformance/README.md`, **`conformance/check.sh`** | ⛔ **YES** |
+
+⛔ **BY THE RULE STATED ABOVE, THIS TABLE IS NOW STALE.** `dc38efc` touched
+`conformance/check.sh`, which is a gate script, and no full run has happened since
+`18a6e5e`. The rule said any path under `conformance/`, `lib/` or `test/` makes it stale;
+that condition is met and I am **not** rewriting the rule to avoid its verdict —
+commonplace-log held to a table at 19:19Z when holding cost it its result, and a rule
+revised to rescue a table is worth nothing afterwards.
+
+**What mitigates it, stated as mitigation and not as exemption:**
+
+* the edit is **comment-only** — three `#` lines pointing at this file — verified by diff,
+  0 added non-comment lines, with a control (`README.md`, same test, 5) proving the test
+  can say otherwise;
+* `check.sh` was re-run afterwards with its first gate induced to refuse: **rc 1 in 5 s,
+  0 suites started**, and the byte-rules gate printed OK before the floor-ordering gate
+  fired. That proves the edited script still parses, executes, reaches its gates, and that
+  its gates still fire — none of which `bash -n` proves.
+
+⇒ So the arm evidence is **not** believed to be wrong, and it is **not** current either.
+The next full `check.sh` run clears this row; until then the table's sha is `18a6e5e` and
+this delta is part of reading it.
 
 | # | Gate | Where | Red arm seen | Green arm seen | Against |
 | --- | --- | --- | --- | --- | --- |
