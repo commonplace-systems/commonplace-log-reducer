@@ -23,10 +23,21 @@
 # checked". Both arms are demonstrated below rather than assumed --- a gate
 # that has never been seen to fire is not known to work.
 #
-# Exit: 0 the inventory matches the pin; 65 it diverges; 70 the instrument
-# could not read its own corpus.
+# Exit: 0 the inventory matches the pin; $RC_DIVERGED it diverges; $RC_BLIND
+# the instrument could not read its own corpus.
+#
+# ⚠️ THE CODES ARE NAMED, NOT RESTATED. This header used to spell them as
+# literals beside the `exit` statements that used other literals -- two
+# statements of one value, four lines apart, which is the defect
+# commonplace-markdown measured tonight in a guard fifteen minutes old (its
+# floor refused correctly and NAMED THE WRONG NUMBER). It cannot misrefuse
+# here, only misdocument, which is why it was recorded as a gap before being
+# fixed; commonplace-plan ruled the fix worth making since it costs nothing.
 
 set -euo pipefail
+
+readonly RC_DIVERGED=65
+readonly RC_BLIND=70
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pin="$root/conformance/GATED_ARMS.txt"
@@ -44,7 +55,7 @@ mapfile -t dirs < <(find "$root" -mindepth 2 -maxdepth 2 -type d -name test -not
 
 if [ "${#dirs[@]}" -eq 0 ]; then
   echo "GATED-ARMS: found no */test directory under $root; refusing to report an absence." >&2
-  exit 70
+  exit "$RC_BLIND"
 fi
 
 # ---------------------------------------------------------------------------
@@ -65,7 +76,7 @@ fi
 # ---------------------------------------------------------------------------
 control=0
 for d in "${dirs[@]}"; do
-  [ -d "$d" ] || { echo "GATED-ARMS: $d does not exist; refusing to report an absence." >&2; exit 70; }
+  [ -d "$d" ] || { echo "GATED-ARMS: $d does not exist; refusing to report an absence." >&2; exit "$RC_BLIND"; }
   control=$((control + $(grep -rl "^defmodule" --include='*.exs' --include='*.ex' "$d" | wc -l)))
 done
 
@@ -79,13 +90,13 @@ if [ "$by_find" != "$by_git" ]; then
   echo "believed. An untracked or unlisted test file is exactly the file a scanner" >&2
   echo "would miss while reporting a clean empty inventory." >&2
   diff <(printf '%s\n' "$by_git") <(printf '%s\n' "$by_find") >&2 || true
-  exit 70
+  exit "$RC_BLIND"
 fi
 
 if [ "$control" -eq 0 ]; then
   echo "GATED-ARMS: positive control found no test module at all. The instrument is" >&2
   echo "blind or the corpus moved; either way an empty inventory proves nothing." >&2
-  exit 70
+  exit "$RC_BLIND"
 fi
 
 # ---------------------------------------------------------------------------
@@ -115,7 +126,7 @@ inventory="$(
   done | sort
 )"
 
-[ -f "$pin" ] || { echo "GATED-ARMS: no pin at $pin" >&2; exit 70; }
+[ -f "$pin" ] || { echo "GATED-ARMS: no pin at $pin" >&2; exit "$RC_BLIND"; }
 
 expected="$(grep -v "^#" "$pin" | grep -v "^[[:space:]]*$" || true)"
 
@@ -136,4 +147,4 @@ echo "--- pinned" >&2
 printf '%s\n' "$expected" >&2
 echo "--- found" >&2
 printf '%s\n' "$inventory" >&2
-exit 65
+exit "$RC_DIVERGED"
