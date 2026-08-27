@@ -56,6 +56,14 @@ It is the source of truth for scope; this README summarizes and does not extend 
   change**. That is a boundary demonstration by *one* foreign plugin — not plugin
   generality. Read its "what this does NOT establish" section before citing it.
 
+## What has actually been demonstrated, per gate
+
+[`docs/GATE-ARMS.md`](docs/GATE-ARMS.md) records, for every gate in this repository, whether
+its red arm and its green arm have been **seen** — and against which object, since a
+demonstration against an extracted copy proves the copy. It also names the sha its last
+full run was measured at, and states which paths would make that run stale. Read it before
+trusting a green here: a gate never seen to fail is not known to work.
+
 ## The seven distinctions (§40)
 
 The specification requires the documentation to make these explicit. Each is stated where a

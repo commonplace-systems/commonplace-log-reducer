@@ -11,6 +11,11 @@ Three corpora live here:
 
 `conformance/check.sh` runs the two Elixir suites and reports.
 
+⭐ **Which of its gates have been seen red, and which green, is recorded in
+[`../docs/GATE-ARMS.md`](../docs/GATE-ARMS.md)** — with the object each arm was proven
+against and the sha the last full run was measured at. A green run here means the gates
+did not fire; that file is where you find out whether they *can*.
+
 `canonical-json/` is inherited byte-for-byte from an upstream source and has a
 different vector format (`input.json` + `expected.hex`). **Do not edit it.**
 Everything below describes `reducer-engine/` and `attribute-map/`.

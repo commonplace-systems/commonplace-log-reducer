@@ -15,6 +15,10 @@
 # its readers to over-read it. See docs/ACCEPTANCE.md for the criterion-by-
 # criterion record this run is one input to.
 
+# ⭐ Whether each gate below has been SEEN to fire -- red arm and green arm, and against
+# which object -- is recorded in docs/GATE-ARMS.md. A gate you have never seen fail is
+# not known to work, and that file is the record of which ones have.
+
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
