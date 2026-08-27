@@ -249,11 +249,16 @@ run_full() {
 # Source-only, and both arms were demonstrated 2026-08-27 (empty set -> 0;
 # synthetic env-gated module -> 65 naming it; removed -> 0 again).
 # Cheapest first: a configuration error must not cost four suite runs to find.
-# ARMS: green (220 > 200 -> OK) and refuse-on-unreadable demonstrated in
-# isolation; the WIRING RED demonstrated here (floor 150 -> rc 1 in 13s with
-# ZERO suites started). ⚠️ The WIRING GREEN -- that this script still completes
-# after the assertion passes -- is NOT yet demonstrated end to end; it needs a
-# full run and the box is queued. Reasoned-about and watched-working are not
+# ARMS, and WHICH OBJECT each was demonstrated against, because
+# commonplace-yepochs showed tonight that A DEMONSTRATION AGAINST A DUPLICATE
+# PROVES THE DUPLICATE -- an awk/sed-extracted copy is textually identical and
+# passes for the right reason about the wrong object:
+#   * red, floor 150      -> THIS script, rc 1 in 13s, ZERO suites started
+#   * unreadable floor    -> THIS script, rc 1 in 10s, ZERO suites started
+#     (induced by renaming full_suite_floor in test_helper.exs, then restored)
+#   * green, 220 > 200    -> ⚠️ an EXTRACTED COPY of this function only
+# ⚠️ So the WIRING GREEN -- that this script prints the OK line and then
+# COMPLETES -- is NOT demonstrated. It needs a full run and the box is queued. Reasoned-about and watched-working are not
 # the same object, and a function whose last command returns non-zero aborts
 # the script under `set -e` (measured here 2026-08-27, in this file).
 assert_floor_ordering
