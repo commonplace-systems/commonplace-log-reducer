@@ -111,6 +111,46 @@ fi
 #   * `@tag`, the same at test granularity.
 #
 # `grep`, not `awk`: no quoting hazard, and nothing to truncate.
+#
+# ## ⚠️ THE RESIDUAL OF THE FIRST SHAPE, MEASURED 2026-08-27 — READ BEFORE "FIXING" IT
+#
+# commonplace-log found that `^if System.get_env` RETURNS A CLEAN ZERO on a
+# genuinely gated file whose wrapper is a `case`, and published
+# `^(if|case|cond|unless) System.get_env` as the corrected selector. This gate
+# already had `if|case|unless`. ⛔ DO NOT ADD `cond` TO IT:
+#
+#   `cond` TAKES NO SUBJECT. It is `cond do` with the conditions on indented
+#   clause lines, so `^cond System.get_env` CANNOT MATCH ANY VALID ELIXIR.
+#   Measured against a synthetic cond-gated module: the corrected selector
+#   scores 0 on it, exactly as the uncorrected one does.
+#
+# ⭐ An alternative that can never match is DECORATION. It widens the pattern in
+# the message and covers nothing in the file, which is worse than the known gap
+# because it reads as closed.
+#
+# ⛔ THE REAL RESIDUAL, WHICH NEITHER SELECTOR CLOSES, is the SPLIT form --- the
+# env call and the wrapper on different lines:
+#
+#     mode = System.get_env("M")
+#     if mode do
+#       defmodule SplitGatedTest do
+#
+# Both selectors score 0 here (measured). Every anchor-line pattern does, because
+# the anchor line contains no `System.` at all. ⇒ THIS GATE'S CLAIM IS BOUNDED TO
+# SINGLE-LINE WRAPPERS AND SAYS SO, rather than implying a coverage it lacks.
+#
+# ## ⛔ AND THE STRUCTURAL FIX I TRIED AND REJECTED, RECORDED SO IT IS NOT RETRIED
+#
+# A conditionally-compiled module is INDENTED, so `^[[:space:]]+defmodule` looked
+# like the observable that does not care what the wrapper is --- and it DOES catch
+# both the `case` form and the split form (both measured, 1 each).
+# ⛔ It also caught FIVE modules in `commonplace_log_reducer/test/registry_test.exs`
+# (lines 7, 19, 31, 38, 50): ordinary fixture modules nested inside a test module,
+# compiled unconditionally, entirely correct.
+# ⇒ ⭐ A GATE THAT FIRES ON CORRECT STATE IS WORSE THAN NO GATE. Indentation is the
+# observable of NESTING, and conditional compilation is only one of its causes ---
+# the same one-observable-many-causes shape as reading a directory's mtime as its
+# contents'. The narrower, honestly-bounded selector is kept ON PURPOSE.
 # ---------------------------------------------------------------------------
 inventory="$(
   for d in "${dirs[@]}"; do

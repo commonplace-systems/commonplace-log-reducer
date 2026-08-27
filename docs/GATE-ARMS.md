@@ -29,6 +29,7 @@ run must be repeated:
 | --- | --- | --- |
 | `4e9779f`, `2280a03`, `20dda5d`, `b6cc604` | `docs/GATE-ARMS.md`, `README.md` | no — docs only |
 | `dc38efc` | `conformance/README.md`, **`conformance/check.sh`** | ⛔ **YES** |
+| this commit | **`conformance/check-gated-arms.sh`** | ⛔ **YES** — comment-only; both arms re-demonstrated below |
 
 ⛔ **BY THE RULE STATED ABOVE, THIS TABLE IS NOW STALE.** `dc38efc` touched
 `conformance/check.sh`, which is a gate script, and no full run has happened since
@@ -36,6 +37,15 @@ run must be repeated:
 that condition is met and I am **not** rewriting the rule to avoid its verdict —
 commonplace-log held to a table at 19:19Z when holding cost it its result, and a rule
 revised to rescue a table is worth nothing afterwards.
+
+**The second row, added by the commit that carries it.** `check-gated-arms.sh` gained a
+header section recording a residual commonplace-log measured today and a structural fix I
+tried and rejected. Comment-only (0 added non-comment lines, verified by diff with a control
+proving the test can say otherwise) — and unlike the first row, **both arms were
+re-demonstrated after the edit rather than argued from the diff**: a planted single-line
+`case System.get_env` module → **rc 65, naming the file**; the probe deleted by path →
+**rc 0, 0 gated arms, 2 dirs / 19 files**. A comment edit that leaves a gate unable to fire
+is exactly the failure this table exists to catch, so the diff is not the evidence; the arms are.
 
 **What mitigates it, stated as mitigation and not as exemption:**
 
