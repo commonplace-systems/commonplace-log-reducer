@@ -10,7 +10,7 @@ Realm placement, or replica synchronization.
 
 ## Status
 
-**Measured at `b69eb91` (main, 2026-08-27): the engine and the attribute-map plugin are
+**Measured at `a292734` (main, 2026-08-27): the engine and the attribute-map plugin are
 merged and on `main` — `commonplace_log_reducer` 226 tests + 11 properties, `commonplace_attribute_map`
 99 tests + 13 properties, 0 failures; conformance corpora 19 canonical-JSON + 20 reducer-engine
 + 19 attribute-map case directories; `./conformance/check.sh` exits 0; all fifteen §21 codes
