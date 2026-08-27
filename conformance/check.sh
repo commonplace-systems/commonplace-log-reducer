@@ -107,14 +107,13 @@ run_conformance() {
     "Refusing rather than assuming a clean run -- unparseable and clean must not " \
     "share an observable."
 
-  # ⚠️ ARM NOT YET DEMONSTRATED. The identical refusal in `run_full` HAS been
-  # seen red (2026-08-27: "226 tests, 0 failures, 4 excluded" -> FAIL naming
-  # DOOR 3) and seen green. THIS one has not: inducing it needs an exclusion
-  # that lands inside test/conformance_test.exs, and the obvious probe (@tag)
-  # is caught first by DOOR 4, which runs earlier -- the first attempt refused
-  # at DOOR 4 and proved the wrong gate. Same code shape is not a
-  # demonstration. Induce with `exclude: [module: ConformanceTest]` and see it
-  # red before relying on it.
+  # ARM DEMONSTRATED 2026-08-27, both directions. Red: `exclude: [module:
+  # ConformanceTest]` -> "25 tests, 0 failures, 25 excluded" -> FAIL naming
+  # DOOR 3. Green: every clean run of this script.
+  # ⚠️ Inducing it needs an exclusion INSIDE test/conformance_test.exs, and the
+  # obvious probe (an added @tag) is caught first by DOOR 4, which runs
+  # earlier: the first attempt refused at DOOR 4 and proved the wrong gate.
+  # A red is not self-certifying -- read WHICH gate spoke.
   for kind in excluded skipped invalid; do
     if printf '%s\n' "$summary" | grep -qE "[0-9]+ $kind"; then
       n="$(printf '%s\n' "$summary" | sed -n "s/.*[^0-9]\([0-9]\{1,\}\) $kind.*/\1/p")"

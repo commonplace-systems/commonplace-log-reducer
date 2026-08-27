@@ -42,11 +42,15 @@ ExUnit.after_suite(fn %{total: total, failures: failures} = results ->
   # one excluded arm left `226 tests, 0 failures, 1 excluded` and this gate
   # certified a full run that had not happened. The floor must be compared
   # against what actually EXECUTED, which is total minus the two.
-  # ⚠️ ARM NOT YET DEMONSTRATED: this floor has not been seen to DISCRIMINATE.
-  # The 2026-08-27 induced run excluded 4 tests, leaving executed = 222, still
-  # over the floor -- correct behaviour, but not evidence the subtraction
-  # changes an outcome. Induce >26 exclusions and see this branch report
-  # "skipped: N of 226 executed" before relying on it.
+  # ARM DEMONSTRATED 2026-08-27: one @moduletag across engine_test and
+  # conformance_test, excluded -> "183 of 237 tests executed, under the
+  # 200-test floor". Before this subtraction the same run reported the total,
+  # 237, cleared the floor, and certified "all 15 codes emitted by an
+  # assertion in this run" with 54 arms never executed.
+  # ⚠️ The first induction attempt UNDER-APPLIED and looked like a demo:
+  # `exclude: [module: A, module: B, ...]` is a keyword list with duplicate
+  # keys, so only ONE module was excluded (25 tests, executed 201, still over
+  # the floor). Use one tag across several modules.
   executed = total - Map.get(results, :excluded, 0) - Map.get(results, :skipped, 0)
   expected = MapSet.new(Commonplace.LogReducer.Error.codes())
   emitted = :emitted_codes |> :ets.tab2list() |> Enum.map(&elem(&1, 0)) |> MapSet.new()
